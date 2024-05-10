@@ -179,10 +179,6 @@ int isSpecialChar(char ch)
         return TRUE;
     }
 }
-void freeTokens(Node *token)
-{
-    free(token->data);
-}
 int isMdefine(char *token)
 {
     if (strcmp(token, ".define") == 0)
@@ -238,7 +234,6 @@ int isEntry(char *token)
         return FALSE;
     }
 }
-
 int isString(char *token)
 {
     if (strcmp(token, ".string") == 0)
@@ -250,7 +245,6 @@ int isString(char *token)
         return FALSE;
     }
 }
-
 int isSymbol(char *token)
 {
     int i = 0;
@@ -271,4 +265,15 @@ int isSymbol(char *token)
         return FALSE;
     }
     return TRUE;
+}
+int isMacro(char *line)
+{
+    if (line[0] == 'm' && line[1] == 'c' && line[2] == 'r' && line[3] == ' ')
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }

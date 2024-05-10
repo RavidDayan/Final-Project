@@ -13,12 +13,12 @@ char *removeWhiteSpace(FILE *file);
 char *getLine(FILE *file);
 LinkedList *getTokens(char *line);
 int isSpecialChar(char ch);
-void freeTokens(Node *token);
 int isMdefine(char *token);
 int isData(char *token);
 int isString(char *token);
 int isExtern(char *token);
 int isEntry(char *token);
 int isSymbol(char *token);
+int isMacro(char *line);
 
 #endif
