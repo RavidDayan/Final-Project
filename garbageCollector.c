@@ -1,7 +1,5 @@
 #include <stdlib.h>
 #include "dataStructs.h"
-#include "node.h"
-#include "linkedList.h"
 void releaseAllFileMemory(LinkedList *mcros, LinkedList *symbols, char *as, char *am, char *ob, char *ext, char *ent)
 {
     free(as);
@@ -18,7 +16,7 @@ void freeList(LinkedList *list, void (*freeData)(Node *))
     Node *current = list->head;
     while (current != NULL)
     {
-        next = current->next;
+        next = getNext(current);
         freeData(current);
         free(current);
         current = next;

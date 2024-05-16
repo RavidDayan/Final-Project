@@ -1,7 +1,5 @@
 #include "parser.h"
 #include "dataStructs.h"
-#include "node.h"
-#include "linkedList.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -14,47 +12,42 @@ char *removeWhiteSpace(FILE *input)
     char buffer;
     char *organizedFile = "removeWhiteSpace.as";
     char lastInserted = ' ';
-    int stringFlag = 0;
+    int StringEnd = 0, counter = 0;
     int sqBracketsFlag = 0;
     buffer = fgetc(input);
     newFile = fopen(organizedFile, "w");
     while (buffer != EOF)
     {
-        if (buffer == '"')
+        if (buffer == '"') /*handle string*/
         {
-            if (stringFlag == 1)
+            counter = 0;
+            while (buffer != EOF && buffer != '\n') /*go back to first ' " '*/
             {
-                stringFlag = 0;
-            }
-            else
-            {
-                stringFlag = 1;
-            }
-        }
-        if (buffer == '[')
-        {
-            sqBracketsFlag = 1;
-        }
-        if (buffer == ']')
-        {
-            sqBracketsFlag = 0;
-        }
-        /*check if char is a non \n white space not in a string*/
-        if (isspace(buffer) && buffer != '\n' && stringFlag == 0)
-        {
-            /*if the last character is  a white space and its a string add to file otherwise skip*/
-            if (isspace(lastInserted))
-            {
-                if (stringFlag == 1)
+                if (buffer == '"')
                 {
-                    fputc(buffer, newFile);
-                    lastInserted = buffer;
+                    StringEnd = counter;
                 }
+                counter++;
             }
-            else
+            fseek(input, -1 * (counter + 1), SEEK_CUR);
+            while (StringEnd >= 0)
             {
+                buffer = fgetc(input);
+                fputc(buffer, newFile);
+                StringEnd--;
+            }
+            buffer = fgetc(input);
+            lastInserted = '"';
+            continue;
+        }
+        /*check if char is a non \n white space*/
+        if (isspace(buffer) && buffer != '\n')
+        {
+            if (isspace(lastInserted) == FALSE)
+            { /*inser whiteSpace only if the character before is not a whitespace*/
+
                 /*if last inserted is not a white space check if its not inside a []*/
-                if (sqBracketsFlag == 0)
+                if (sqBracketsFlag == FALSE)
                 {
                     fputc(buffer, newFile);
                     lastInserted = buffer;
@@ -63,8 +56,43 @@ char *removeWhiteSpace(FILE *input)
         }
         else
         {
-            fputc(buffer, newFile);
-            lastInserted = buffer;
+            if (buffer == '[') /*start of brackets*/
+            {
+                fputc(buffer, newFile);
+                lastInserted = buffer;
+                sqBracketsFlag = 1;
+            }
+            if (buffer == ']') /*end of brackets*/
+            {
+                fputc(buffer, newFile);
+                lastInserted = buffer;
+                sqBracketsFlag = 0;
+            }
+            if (buffer == ':')
+            {
+                fputc(buffer, newFile);
+                fputc(' ', newFile);
+                lastInserted = ' ';
+            }
+            /*seperate = from both sides*/
+            if (buffer == '=')
+            {
+                if (isspace(lastInserted) == FALSE)
+                {
+                    fputc(' ', newFile);
+                    fputc(buffer, newFile);
+                    fputc(' ', newFile);
+                    lastInserted = ' ';
+                }
+                else
+                {
+                    {
+                        fputc(buffer, newFile);
+                        fputc(' ', newFile);
+                        lastInserted = ' ';
+                    }
+                }
+            }
         }
         buffer = fgetc(input);
     }
@@ -179,6 +207,170 @@ int isSpecialChar(char ch)
         return TRUE;
     }
 }
+int isLegalSyntax(char *line)
+{
+    int i = 0, allowedCommaFlag = FALSE, lastStringChar = 0, closedString = FALSE, decalreFLag = FALSE;
+    if (line[0] == ';') /*comment line*/
+    {
+        return TRUE;
+    }
+    if (line[0] != '.' || isalpha(line[0]) == FALSE) /* either starts with symbol or .extern/define/data/string/entry*/
+    {
+        /*error:ilegal character placement*/
+    }
+    i = 0;
+    while (line[i] != '\n')
+    {
+        if (isIlegalCharacter(line[i]) == TRUE) /* is not a special character outside of a string : , [ ] . # " or alphnum*/
+        {
+            /*error:ilegal character*/
+            return FALSE;
+        }
+        if (line[i] == '"') /*handle string from first " to last "*/
+        {
+            i++;
+            while (line[i] != '\0') /*look for string closing "*/
+            {
+                if (line[i] == '"')
+                {
+                    lastStringChar = i;
+                    closedString = TRUE;
+                }
+                i++;
+            }
+            if (closedString == FALSE)
+            {
+                /*error:missing closing "*/
+                return FALSE;
+            }
+            else
+            {
+                i = lastStringChar;
+            }
+            i++;
+            allowedCommaFlag = TRUE;
+        }
+        if (line[i] == '[') /*handle brackets start to finish with alnum before '[' and end with ']' and only alnum in between []*/
+        {
+            if (isalnum(line[i - 1]) == FALSE)
+            {
+                /*error:ilegala character before brackets*/
+                return FALSE;
+            }
+            i++;
+            while (line[i] != '\0' && line[i] != ']')
+            {
+                if (isalnum(line[i]) == FALSE)
+                {
+                    /*error: illegal character in brackets*/
+                    return FALSE;
+                }
+                i++;
+            }
+            if (line[i] != ']')
+            {
+                /*error: no closing brackets*/
+                return FALSE;
+            }
+            allowedCommaFlag = TRUE;
+        }
+        if (line[i] == ']')
+        { /*] should be handled in [,otherwise its alone*/
+            /*error: no opening brackets*/
+            return FALSE;
+        }
+        if (line[i] == ':') /*check alnum before : and no 2 : in line*/
+        {
+            decalreFLag++;
+            if (isalnum(line[i - 1]) == FALSE)
+            {
+                /*error: ilegal character before :*/
+                return FALSE;
+            }
+            if (decalreFLag == 2)
+            {
+                /*error: cannt declare more than once in a line :*/
+                return FALSE;
+            }
+            allowedCommaFlag = FALSE;
+        }
+        if (line[i] == '+' || line[i] == '-') /*after +/- must be a number*/
+        {
+            if (isdigit(line[i + 1]) == FALSE)
+            {
+                /*error: ilegal character after math operand*/
+                return FALSE;
+            }
+            allowedCommaFlag = TRUE;
+        }
+        if (line[i] == '#') /*after # must be a alnum/+/- */
+        {
+            if (isalnum(line[i + 1]) == FALSE && isalnum(line[i + 1]) != '-' && isalnum(line[i + 1]) != '+')
+            {
+                /*error: illegal character after #*/
+                return FALSE;
+            }
+            allowedCommaFlag = TRUE;
+        }
+        if (line[i] == '.') /*after . must be a alnum/+/- */
+        {
+            i++;
+            if (isalpha(line[i]) == FALSE)
+            {
+                /*error: illegal character after .*/
+                return FALSE;
+            }
+            i++;
+            while (isalnum(line[i]) == TRUE)
+            {
+                /*error: illegal character after .*/
+                return FALSE;
+                i++;
+            }
+            if (isspace(line[i]) == FALSE)
+            {
+                /*error: missing whitespace after .operation */
+                return FALSE;
+            }
+            allowedCommaFlag = FALSE;
+            continue;
+        }
+        if (line[i] == ',') /*cant be 2 consecutive ,*/
+        {
+            if (allowedCommaFlag == FALSE)
+            {
+                /*error:ilegal , placement*/
+                return FALSE;
+            }
+            allowedCommaFlag = FALSE;
+        }
+        if (line[i] == '_') /*must be between alpphnum*/
+        {
+            if (isalnum(line[i + 1]) == FALSE || isalnum(line[i - 1]) == FALSE)
+            {
+                /*error:ilegal character*/
+                return FALSE;
+            }
+        }
+        if (isalnum(line[i]) != FALSE) /*allows commas to be placed*/
+        {
+            allowedCommaFlag = TRUE;
+        }
+        i++;
+    }
+    return TRUE;
+}
+int isIlegalCharacter(char ch)
+{
+    if (isspace(ch) == FALSE && isalnum(ch) == FALSE && ch != ',' && ch != '=' && ch != ':' && ch != '.' && ch != '#' && ch != '"' && ch != '-' && ch != '+' && ch != '[' && ch != ']' && ch != '_')
+    {
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
 int isMdefine(char *token)
 {
     if (strcmp(token, ".define") == 0)
@@ -212,6 +404,19 @@ int isString(char *token)
         return FALSE;
     }
 }
+int isInteger(char *token)
+{
+    int i = 0;
+    while (token[i] != '\0')
+    {
+        if (isdigit(token[i]) == FALSE)
+        {
+            return FALSE;
+        }
+        i++;
+    }
+    return TRUE;
+}
 int isExtern(char *token)
 {
     if (strcmp(token, ".extern") == 0)
@@ -226,17 +431,6 @@ int isExtern(char *token)
 int isEntry(char *token)
 {
     if (strcmp(token, ".entry") == 0)
-    {
-        return TRUE;
-    }
-    else
-    {
-        return FALSE;
-    }
-}
-int isString(char *token)
-{
-    if (strcmp(token, ".string") == 0)
     {
         return TRUE;
     }
@@ -276,4 +470,30 @@ int isMacro(char *line)
     {
         return 0;
     }
+}
+int isArray(char *token)
+{
+    int i = 0;
+    while (token[i] != '\0')
+    {
+        if (token[i] == '[')
+        {
+            return TRUE;
+        }
+        i++;
+    }
+    return FALSE;
+}
+int isRegister(char *token)
+{
+    int charValue;
+    if (token[0] == 'r' && isdigit(token[1]) == TRUE && token[2] == '\0')
+    {
+        charValue = token[1];
+        if (0 <= charValue - 48 && charValue <= 7)
+        {
+            return charValue - 48;
+        }
+    }
+    return FALSE;
 }

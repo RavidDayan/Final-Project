@@ -2,15 +2,16 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include "util.h"
+#include "dataStructs.h"
 #include "preProccess.h"
-#include "linkedList.h"
-/*#include "dataStructs.h"*/
+#include "firstPass.h"
+#include "secondPass.h"
 
-void assemble(char *fileName, LinkedList *mcros);
+
+void assemble(char *fileName);
 int main(int argc, char *argv[])
 {
-    /*memory stack[4096];*/
-    LinkedList *mcros;
     int i;
     if (argc == 1)
     {
@@ -20,13 +21,18 @@ int main(int argc, char *argv[])
 
     for (i = 1; i < argc; i++)
     {
-        mcros = newLinkedList();
-        assemble(argv[i], mcros);
+        assemble(argv[i]);
     }
 
     return 0;
 }
-void assemble(char *fileName, LinkedList *mcros)
+void assemble(char *fileName)
 {
-    preProccess(fileName, mcros);
+    MemoryManager *memoryManager;
+    memoryManager=newMemoryManager(fileName);
+    preProccess(memoryManager);
+    firstPass(memoryManager);
+    /*
+    secondPass();
+    BuildFIles();*/
 }
