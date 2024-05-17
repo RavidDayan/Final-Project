@@ -138,9 +138,8 @@ char *getLine(FILE *file)
         {
             return NULL;
         }
-        else
-        {
-            line[counter] = '\0';
+        else{
+            buffer='\n';
         }
     }
     if (buffer == '\n')
@@ -245,9 +244,10 @@ int isLegalSyntax(char *line)
     {
         return TRUE;
     }
-    if (line[0] != '.' || isalpha(line[0]) == FALSE) /* either starts with symbol or .extern/define/data/string/entry*/
+    if (line[0] != '.' && isalpha(line[0]) == FALSE && line[0] != '\n') /* either starts with symbol or .extern/define/data/string/entry*/
     {
         /*error:ilegal character placement*/
+        return FALSE;
     }
     i = 0;
     while (line[i] != '\n')
@@ -280,6 +280,7 @@ int isLegalSyntax(char *line)
             }
             i++;
             allowedCommaFlag = TRUE;
+            continue;
         }
         if (line[i] == '[') /*handle brackets start to finish with alnum before '[' and end with ']' and only alnum in between []*/
         {
@@ -303,7 +304,9 @@ int isLegalSyntax(char *line)
                 /*error: no closing brackets*/
                 return FALSE;
             }
+            i++;
             allowedCommaFlag = TRUE;
+            continue;
         }
         if (line[i] == ']')
         { /*] should be handled in [,otherwise its alone*/
@@ -325,6 +328,21 @@ int isLegalSyntax(char *line)
             }
             allowedCommaFlag = FALSE;
         }
+        if (line[i] == '=')
+        {
+            decalreFLag++;
+            if (line[i - 1] != ' ' || line[i + 1] != ' ')
+            {
+                /*error: ilegal character before or after  =*/
+                return FALSE;
+            }
+            if (decalreFLag == 2)
+            {
+                /*error: cannt declare more than once in a line :*/
+                return FALSE;
+            }
+            allowedCommaFlag = FALSE;
+        }
         if (line[i] == '+' || line[i] == '-') /*after +/- must be a number*/
         {
             if (isdigit(line[i + 1]) == FALSE)
@@ -336,7 +354,7 @@ int isLegalSyntax(char *line)
         }
         if (line[i] == '#') /*after # must be a alnum/+/- */
         {
-            if (isalnum(line[i + 1]) == FALSE && isalnum(line[i + 1]) != '-' && isalnum(line[i + 1]) != '+')
+            if (isalnum(line[i + 1]) == FALSE && line[i + 1] != '-' && line[i + 1] != '+')
             {
                 /*error: illegal character after #*/
                 return FALSE;
@@ -352,13 +370,11 @@ int isLegalSyntax(char *line)
                 return FALSE;
             }
             i++;
-            while (isalnum(line[i]) == TRUE)
+            while (isalnum(line[i]) != FALSE)
             {
-                /*error: illegal character after .*/
-                return FALSE;
                 i++;
             }
-            if (isspace(line[i]) == FALSE)
+            if (isspace(line[i]) == FALSE && line[i] != '\0')
             {
                 /*error: missing whitespace after .operation */
                 return FALSE;
@@ -395,6 +411,7 @@ int isIlegalCharacter(char ch)
 {
     if (isspace(ch) == FALSE && isalnum(ch) == FALSE && ch != ',' && ch != '=' && ch != ':' && ch != '.' && ch != '#' && ch != '"' && ch != '-' && ch != '+' && ch != '[' && ch != ']' && ch != '_')
     {
+        printf("the character is:'%c'\n", ch);
         return TRUE;
     }
     else
@@ -438,6 +455,12 @@ int isString(char *token)
 int isInteger(char *token)
 {
     int i = 0;
+    if(token[i]!='-'&& token[i]!='+' && isdigit(token[i]) == FALSE){
+        return FALSE;
+    }
+    if(token[i]!='-'|| token[i]!='+'){
+        i++;
+    }
     while (token[i] != '\0')
     {
         if (isdigit(token[i]) == FALSE)
@@ -518,13 +541,13 @@ int isArray(char *token)
 int isRegister(char *token)
 {
     int charValue;
-    if (token[0] == 'r' && isdigit(token[1]) == TRUE && token[2] == '\0')
+    if (token[0] == 'r' && isdigit(token[1]) != FALSE && token[2] == '\0')
     {
-        charValue = token[1];
-        if (0 <= charValue - 48 && charValue <= 7)
+        charValue = token[1]-'0';
+        if (0 <= charValue && charValue <= 7)
         {
-            return charValue - 48;
+            return charValue;
         }
     }
-    return FALSE;
+    return UNDEFINED;
 }

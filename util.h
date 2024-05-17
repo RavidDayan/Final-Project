@@ -15,6 +15,7 @@
 #define EXT 3
 #define OB 4
 #define DECIMAL 10
+#define STARTING_ADDRESS 100
 
 char *addFileEnding(char *fileName, int type);
 int stringToInt(char *number, int *success);

@@ -30,7 +30,6 @@ void assemble(char *fileName)
 {
     MemoryManager *memoryManager;
     memoryManager=newMemoryManager(fileName);
-    preProccess(memoryManager);
     firstPass(memoryManager);
     /*
     secondPass();

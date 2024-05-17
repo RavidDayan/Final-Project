@@ -32,7 +32,6 @@ int isOpCode(char *opCode)
         {
             return i;
         }
-        i++;
     }
     return UNDEFINED;
 }
@@ -65,7 +64,7 @@ int getAddressingCode(char *token)
     {
         return 2;
     }
-    if (isRegister(token))
+    if (isRegister(token)!=UNDEFINED)
     {
         return 3;
     }

@@ -25,7 +25,7 @@ void preProccess(MemoryManager *MM)
     }
     else
     {
-        amFile = openFile(MM->am->data, "r");
+        amFile = openFile(MM->am->data, "w");
         if (amFile == NULL)
         {
             /*error*/
@@ -89,7 +89,6 @@ void preProccess(MemoryManager *MM)
             free(lineBuffer);
             lineBuffer = getLine(organizedAsFile);
         }
-
         CloseFile(MM->am->data);
         fclose(organizedAsFile);
         remove("removeWhiteSpace.as");

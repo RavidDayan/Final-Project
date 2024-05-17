@@ -21,6 +21,7 @@ Symbol *newSymbol(char *name)
     {
         /*error*/
     }
+    strcpy(newSymbol->name, name);
     newSymbol->property = UNDEFINED;
     newSymbol->value = 0;
     return newSymbol;
@@ -60,7 +61,7 @@ void insertMdefine(LinkedList *line, MemoryManager *MM)
     {
         token = getNext(token); /*symbol name*/
         symbolName = getStr(token);
-        if (isSymbol(symbolName) == TRUE)
+        if (isalpha(getStr(token)[0]))
         {
             if (symbolExists(symbolName, MM) == NULL)
             {
@@ -98,6 +99,29 @@ void insertMdefine(LinkedList *line, MemoryManager *MM)
         }
     }
 }
+void insertExtern(LinkedList *line, MemoryManager *MM)
+{
+    Node *token = line->head;
+    Symbol *symbol;
+    token = getNext(token);
+    if (line->size != 2)
+    {
+        /*error:opernads diffrent than needed for extern*/
+    }
+    symbol = symbolExists(getStr(token), MM);
+    if (symbol != NULL)
+    {
+        /*error:symbol exitss*/
+    }
+    else
+    {
+        symbol = newSymbol(getStr(token));
+        symbol->property = EXTERN;
+        symbol->value = 0;
+        AddSymbol(MM, newNode(symbol));
+    }
+}
+void insertEntry(LinkedList *line, MemoryManager *MM);
 int GetArrayData(char *token, MemoryManager *MM)
 {
     char *symbol;
@@ -106,10 +130,6 @@ int GetArrayData(char *token, MemoryManager *MM)
     int i = 0, flag = FALSE, counter = 0, success = FALSE;
     while (token[i] != '\0')
     {
-        if (token[i] == '[')
-        {
-            flag = TRUE;
-        }
         if (token[i] == ']')
         {
             flag = FALSE;
@@ -122,6 +142,11 @@ int GetArrayData(char *token, MemoryManager *MM)
             }
             counter++;
         }
+        if (token[i] == '[')
+        {
+            flag = TRUE;
+        }
+        i++;
     }
     symbol = (char *)malloc(sizeof(char) * (counter + 1));
     /*error:malloc*/
@@ -129,20 +154,24 @@ int GetArrayData(char *token, MemoryManager *MM)
     i = 0;
     while (token[i] != '\0')
     {
-        if (token[i] == '[')
-        {
-            flag = TRUE;
-        }
         if (token[i] == ']')
         {
             flag = FALSE;
         }
+
         if (flag == TRUE)
         {
             symbol[counter] = token[i];
             counter++;
         }
+        if (token[i] == '[')
+        {
+            flag = TRUE;
+        }
+
+        i++;
     }
+    symbol[counter] = '\0';
     if (labelFlag == TRUE)
     {
         value = symbolExists(symbol, MM);
@@ -172,6 +201,58 @@ int GetArrayData(char *token, MemoryManager *MM)
     }
     return UNDEFINED;
 }
+char *GetArrayDataSymbol(char *token, MemoryManager *MM)
+{
+    char *symbol;
+    Symbol *value;
+    int labelFlag = 0;
+    int i = 0, flag = FALSE, counter = 0, success = FALSE;
+    while (token[i] != '\0')
+    {
+        if (token[i] == ']')
+        {
+            flag = FALSE;
+        }
+        if (flag == TRUE)
+        {
+            if (isdigit(token[i]) == FALSE)
+            {
+                labelFlag = TRUE;
+            }
+            counter++;
+        }
+        if (token[i] == '[')
+        {
+            flag = TRUE;
+        }
+        i++;
+    }
+    symbol = (char *)malloc(sizeof(char) * (counter + 1));
+    /*error:malloc*/
+    counter = 0;
+    i = 0;
+    while (token[i] != '\0')
+    {
+        if (token[i] == ']')
+        {
+            flag = FALSE;
+        }
+
+        if (flag == TRUE)
+        {
+            symbol[counter] = token[i];
+            counter++;
+        }
+        if (token[i] == '[')
+        {
+            flag = TRUE;
+        }
+
+        i++;
+    }
+    symbol[counter] = '\0';
+    return symbol;
+}
 char *getArraySymbol(char *token)
 {
     char *symbol;
@@ -188,6 +269,18 @@ char *getArraySymbol(char *token)
         symbol[i] = token[i];
         i++;
     }
+    return symbol;
+}
+char *getSymbolFromDecleration(char *decleration)
+{
+    char *symbol = (char *)malloc(sizeof(char));
+    int i = 0;
+    while (decleration[i] != ':')
+    {
+        symbol[i] = decleration[i];
+        i++;
+    }
+    symbol[i] = '\0';
     return symbol;
 }
 void insertData(LinkedList *line, MemoryManager *MM)
@@ -305,26 +398,26 @@ void insertString(LinkedList *line, MemoryManager *MM)
         }
         else
         {
-            while (string[i] != '\0')
+            for (i=1;i<strlen(string)-1 ;i++)
             {
                 MM->dc = MM->dc + 1;
                 ML = newMemoryLine(MM->dc);
                 ML->BMC = string[i];
                 if (i == 0)
                 {
-                    ML->SC = line->head;
+                    ML->SC = NULL;
                 }
                 else
                 {
                     ML->SC = NULL;
                 }
                 AddData(MM, newNode(ML));
-                i++;
             }
             MM->dc = MM->dc + 1;
             ML = newMemoryLine(MM->dc);
             ML->BMC = 0;
-            ML->SC = NULL;
+            ML->SC = newNode("\0");
+            AddData(MM, newNode(ML));
         }
     }
     else
@@ -334,15 +427,15 @@ void insertString(LinkedList *line, MemoryManager *MM)
 }
 void insertCode(LinkedList *line, MemoryManager *MM)
 {
-    Node *token = line->head, *firstMLline = NULL, *srcNode = NULL, *desNode = NULL;
+    Node *token = line->head, *firstMLline = NULL, *srcNode = NULL, *desNode = NULL,*TempNode;
     Symbol *symbol;
     MemoryLine *tempML;
+    char *tempString;
     int symbolFlag = 0;
     int opcode = UNDEFINED;
     int src = 0;
     int des = 0;
     /*check if theres a symbol at the start*/
-
     if (isSymbol(getStr(token)))
     {
         symbolFlag = 1;
@@ -353,36 +446,38 @@ void insertCode(LinkedList *line, MemoryManager *MM)
         }
         else
         {
-            symbol = newSymbol(getStr(token));
-            symbol->property = CODE;
-            MM->ic = MM->ic + 1;
-            symbol->value = MM->ic;
+            tempString = getSymbolFromDecleration(getStr(token));
+            symbol = newSymbol(tempString);
+            free(tempString);
+            symbol->property = CODE;;
+            symbol->value = MM->ic+STARTING_ADDRESS;
             AddSymbol(MM, newNode(symbol));
+            token = getNext(token);
         }
     }
-    token = getNext(token);
     opcode = isOpCode(getStr(token));
     if (opcode != UNDEFINED)
     {
         if (enoughOperands((line->size) - (1 + symbolFlag), opcode) == TRUE) /*does line have enough operands for the operation code*/
         {
             MM->ic = MM->ic + 1;
-            tempML = newMemoryLine(MM->ic);
+            tempML = newMemoryLine(MM->ic+STARTING_ADDRESS);
             tempML->SC = line->head;
             tempML->BMC = setCode(0, opcode);
             firstMLline = newNode(tempML);
             if ((line->size) - (1 + symbolFlag) == 1) /*only 1 operand needed*/
             {
                 token = getNext(token);
-                src = getAddressingCode(getStr(token));
-                srcNode = MLgetAddress(token, MM, src, TRUE);
+                des = getAddressingCode(getStr(token));
+                srcNode = MLgetAddress(token, MM, des, FALSE);
             }
             if ((line->size) - (1 + symbolFlag) == 2)
             {
                 token = getNext(token);
                 src = getAddressingCode(getStr(token));
                 srcNode = token;
-                desNode = getNext(token);
+                token = getNext(token);
+                desNode = token;
                 des = getAddressingCode(getStr(token));
                 if (des == 3 && src == 3)
                 {
@@ -399,7 +494,12 @@ void insertCode(LinkedList *line, MemoryManager *MM)
             }
             if (srcNode != NULL)
             {
-                srcNode->next = desNode;
+                TempNode=srcNode;
+                while (getNext(TempNode) != NULL)
+                {
+                    TempNode = getNext(TempNode);
+                }
+                TempNode->next = desNode;
             }
             if (firstMLline != NULL)
             {
@@ -458,7 +558,17 @@ Mcro *mcroExists(char *newMcro, MemoryManager *MM)
     }
     return NULL;
 }
-
+void advanceData(MemoryManager *MM)
+{
+    Node *data = MM->data;
+    MemoryLine *ml;
+    while (data != NULL)
+    {
+        ml = getML(data);
+        ml->DA = ml->DA + MM->ic + STARTING_ADDRESS;
+        data = getNext(data);
+    }
+}
 /*@@@ Node functions @@@*/
 Node *newNode(void *data)
 {
@@ -491,7 +601,7 @@ MemoryLine *getML(Node *node)
 }
 FileTracker *getFT(Node *node)
 {
-    return (FileTracker *)node->data;
+    return (FileTracker *)(node->data);
 }
 Mcro *getMcr(Node *node)
 {
@@ -546,7 +656,7 @@ MemoryManager *newMemoryManager(char *name)
     newMemoryManager->data = NULL;
     newMemoryManager->mcro = NULL;
     newMemoryManager->symbol = NULL;
-    newMemoryManager->ic = 0;
+    newMemoryManager->ic = -1;
     newMemoryManager->dc = 0;
     newMemoryManager->errorFlag = FALSE;
     intializeFiles(newMemoryManager, name);
@@ -561,7 +671,7 @@ void AddData(MemoryManager *mm, Node *newData)
     }
     else
     {
-        while (currentData != NULL)
+        while (getNext(currentData) != NULL)
         {
             currentData = getNext(currentData);
         }
@@ -578,7 +688,7 @@ void AddCode(MemoryManager *mm, Node *newCode)
     }
     else
     {
-        while (currentCode != NULL)
+        while (getNext(currentCode) != NULL)
         {
             currentCode = getNext(currentCode);
         }
@@ -595,7 +705,7 @@ void AddMcro(MemoryManager *mm, Node *newMcro)
     }
     else
     {
-        while (currentMcro != NULL)
+        while (getNext(currentMcro) != NULL)
         {
             currentMcro = getNext(currentMcro);
         }
@@ -612,7 +722,7 @@ void AddSymbol(MemoryManager *mm, Node *newSymbol)
     }
     else
     {
-        while (currentSymbol != NULL)
+        while (getNext(currentSymbol) != NULL)
         {
             currentSymbol = getNext(currentSymbol);
         }
@@ -673,6 +783,47 @@ int getImidiateValue(char *token, MemoryManager *MM)
         }
     }
 }
+void printAll(MemoryManager *MM)
+{
+    Node *code = MM->code;
+    Node *SC = NULL;
+    printf("printing Code+Data:\n");
+    while (code != NULL)
+    {
+        printf("address:%d ,sourceCode:%s binaryCode:", getML(code)->DA, getStr(getML(code)->SC));
+        if (getML(code)->BMC == UNDEFINED)
+        {
+            printf("?\n");
+        }
+        else
+        {
+            printBinary(getML(code)->BMC);
+        }
+        code = getNext(code);
+    }
+    code = MM->data;
+    while (code != NULL)
+    {
+        SC = getML(code)->SC;
+        if (SC != NULL)
+        {
+            printf("address:%d ,sourceCode:%s binaryCode:", getML(code)->DA, getStr(getML(code)->SC));
+        }
+        else
+        {
+            printf("address:%d ,sourceCode:%s binaryCode:", getML(code)->DA, "null");
+        }
+        if (getML(code)->BMC == UNDEFINED)
+        {
+            printf("?\n");
+        }
+        else
+        {
+            printBinary(getML(code)->BMC);
+        }
+        code = getNext(code);
+    }
+}
 /*@@@ File Tracker @@@*/
 FileTracker *newFileTracker(char *name)
 {
@@ -693,14 +844,16 @@ FILE *openFile(FileTracker *fileTracker, char *type)
     {
         return fileTracker->file;
     }
-    openFile = fopen(fileTracker->name, type);
-    if (openFile == NULL)
-    {
-        /*error*/
-        return NULL;
-    }
     else
     {
+
+        openFile = fopen(fileTracker->name, type);
+        if (openFile == NULL)
+        {
+            /*error*/
+            return NULL;
+        }
+
         fileTracker->state = TRUE;
         fileTracker->file = openFile;
         return fileTracker->file;
@@ -780,7 +933,7 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
         else
         {
             MM->ic = MM->ic + 1;
-            tempML = newMemoryLine(MM->ic);
+            tempML = newMemoryLine(MM->ic+STARTING_ADDRESS);
             tempML->SC = token;
             tempML->BMC = setValue(0, value);
             returnedNode = newNode(tempML);
@@ -792,7 +945,7 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
         if (tempSymbol == NULL)
         {
             MM->ic = MM->ic + 1;
-            tempML = newMemoryLine(MM->ic);
+            tempML = newMemoryLine(MM->ic+STARTING_ADDRESS);
             tempML->SC = token;
             tempML->BMC = UNDEFINED;
             returnedNode = newNode(tempML);
@@ -801,7 +954,7 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
         {
             value = tempSymbol->value;
             MM->ic = MM->ic + 1;
-            tempML = newMemoryLine(MM->ic);
+            tempML = newMemoryLine(MM->ic+STARTING_ADDRESS);
             tempML->SC = token;
             tempML->BMC = setValue(0, value);
             returnedNode = newNode(tempML);
@@ -814,7 +967,7 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
         if (tempSymbol == NULL)
         {
             MM->ic = MM->ic + 1;
-            tempML = newMemoryLine(MM->ic);
+            tempML = newMemoryLine(MM->ic+STARTING_ADDRESS);
             tempML->SC = token;
             tempML->BMC = UNDEFINED;
             returnedNode = newNode(tempML);
@@ -823,7 +976,7 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
         {
             value = tempSymbol->value;
             MM->ic = MM->ic + 1;
-            tempML = newMemoryLine(MM->ic);
+            tempML = newMemoryLine(MM->ic+STARTING_ADDRESS);
             tempML->SC = token;
             tempML->BMC = setValue(0, value);
             returnedNode = newNode(tempML);
@@ -836,17 +989,16 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
         else
         {
             MM->ic = MM->ic + 1;
-            tempML = newMemoryLine(MM->ic);
-            tempML->SC = token;
+            tempML = newMemoryLine(MM->ic+STARTING_ADDRESS);
+            tempML->SC = newNode(GetArrayDataSymbol(getStr(token), MM));
             tempML->BMC = setValue(0, value);
             returnedNode->next = newNode(tempML);
         }
     }
     if (addressing == 3)
     {
-        value = getRegisterValue(getStr(token));
         MM->ic = MM->ic + 1;
-        tempML = newMemoryLine(MM->ic);
+        tempML = newMemoryLine(MM->ic+STARTING_ADDRESS);
         tempML->SC = token;
         value = isRegister(getStr(token));
         if (isSrc == FALSE)

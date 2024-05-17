@@ -8,30 +8,35 @@ char *addFileEnding(char *fileName, int type)
     if (type == AS)
     {
         newFile = (char *)malloc((strlen(fileName) + 4) * sizeof(char));
-        strcat(fileName, ".as");
+        strcat(newFile, fileName);
+        strcat(newFile, ".as");
         endingFlag = TRUE;
     }
     if (type == AM)
     {
         newFile = (char *)malloc((strlen(fileName) + 4) * sizeof(char));
-        strcat(fileName, ".am");
+       strcat(newFile, fileName);
+        strcat(newFile, ".am");
         endingFlag = TRUE;
     }
     if (type == OB)
     {
         newFile = (char *)malloc((strlen(fileName) + 4) * sizeof(char));
+        strcat(newFile, fileName);
         strcat(fileName, ".ob");
         endingFlag = TRUE;
     }
     if (type == EXT)
     {
         newFile = (char *)malloc((strlen(fileName) + 5) * sizeof(char));
+        strcat(newFile, fileName);
         strcat(fileName, ".ent");
         endingFlag = TRUE;
     }
     if (type == ENT)
     {
         newFile = (char *)malloc((strlen(fileName) + 5) * sizeof(char));
+        strcat(newFile, fileName);
         strcat(fileName, ".ext");
         endingFlag = TRUE;
     }
@@ -50,7 +55,8 @@ int stringToInt(char *number, int *success)
     int i = 0;
     int multiplyer = 1;
     int decimal = 1;
-    int result;
+    int numbeValue=0;
+    int result=0;
     if (number == NULL || *number == '\0' || (number[0] != '+' && number[0] != '-' && isdigit(number[0]) == FALSE))
     {
         *success = FALSE;
@@ -79,7 +85,8 @@ int stringToInt(char *number, int *success)
     i--;
     while (counter > 0)
     {
-        result = (number[i] * decimal) + result;
+        numbeValue=number[i]-'0';
+        result = (numbeValue * decimal) + result;
         decimal = decimal * 10;
         counter--;
         i--;

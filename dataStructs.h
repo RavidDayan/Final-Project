@@ -53,20 +53,26 @@ typedef struct FileTracker
     FILE *file;
     int state;
 } FileTracker;
+
+/*@@@ Symbol functions @@@*/
 Symbol *newSymbol(char *name);
 Symbol *symbolExists(char *newSymbol, MemoryManager *MM);
+/*@@@ data manipulation*/
 void insertMdefine(LinkedList *line, MemoryManager *MM);
+void insertExtern(LinkedList *line, MemoryManager *MM);
+void insertEntry(LinkedList *line, MemoryManager *MM);
 int GetArrayData(char *token, MemoryManager *MM);
+char * GetArrayDataSymbol(char *token, MemoryManager *MM);
 char *getArraySymbol(char *token);
+char *getSymbolFromDecleration(char* decleration);
 void insertData(LinkedList *line, MemoryManager *MM);
 void insertString(LinkedList *line, MemoryManager *MM);
 void insertCode(LinkedList *line, MemoryManager *MM);
+/*@@@ Macro functions @@@*/
 Mcro *newMcro(char *name);
 Mcro *mcroExists(char *newMcro, MemoryManager *MM);
-
-LinkedList *newLinkedList();
-void append(LinkedList *list, Node *newNode);
-
+void advanceData(MemoryManager *MM);
+/*@@@ Node functions @@@*/
 Node *newNode(void *data);
 Node *getNext(Node *node);
 char *getStr(Node *node);
@@ -75,25 +81,26 @@ MemoryLine *getML(Node *node);
 FileTracker *getFT(Node *node);
 Mcro *getMcr(Node *node);
 Symbol *getSymbol(Node *node);
-
-MemoryLine *newMemoryLine(int address);
-Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc);
-
+/*@@@ Linked list functions @@@*/
+LinkedList *newLinkedList();
+void append(LinkedList *list, Node *newNode);
+/*@@@ Memory Manager @@@*/
 MemoryManager *newMemoryManager(char *name);
-void AddData(MemoryManager *list, Node *newDataNode);
-void AddCode(MemoryManager *list, Node *newCodeNode);
-void AddMcro(MemoryManager *list, Node *newMcroNode);
-void AddSymbol(MemoryManager *list, Node *newSymbolNode);
+void AddData(MemoryManager *mm, Node *newData);
+void AddCode(MemoryManager *mm, Node *newCode);
+void AddMcro(MemoryManager *mm, Node *newMcro);
+void AddSymbol(MemoryManager *mm, Node *newSymbol);
+int getRegisterValue(char *token);
+int getImidiateValue(char *token, MemoryManager *MM);
+void printAll(MemoryManager *MM);
+/*@@@ File Tracker @@@*/
+FileTracker *newFileTracker(char *name);
 FILE *openFile(FileTracker *fileTracker, char *type);
 void CloseFile(FileTracker *fileTracker);
 void intializeFiles(MemoryManager *mm, char *name);
-int isSymbolDefined(char *symbol, MemoryManager *MM);
-int getRegisterValue(char *token);
-int getImidiateValue(char *token, MemoryManager *MM);
-
-FileTracker *newFileTracker(char *name);
-char FTgetName(FileTracker *file);
-FILE *FTgetFile(FileTracker *file);
-int FTisOpen(FileTracker *file);
+int isSymbolDefined(char *token, MemoryManager *MM);
+/*@@@ Memory Lines @@@*/
+MemoryLine *newMemoryLine(int address);
+Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc);
 
 #endif

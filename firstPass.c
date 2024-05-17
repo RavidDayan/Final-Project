@@ -3,12 +3,15 @@
 #include "util.h"
 #include "opcode.h"
 #include "dataStructs.h"
+#include <string.h>
 void firstPass(MemoryManager *MM)
 {
+    int i = 1;
     FILE *amFile;
     LinkedList *tokenizedLine;
     Node *token;
-        char *lineBuffer;
+    char *lineBuffer;
+
     amFile = openFile(getFT(MM->am), "r");
     if (amFile == NULL)
     {
@@ -17,71 +20,81 @@ void firstPass(MemoryManager *MM)
     lineBuffer = getLine(amFile);
     while (lineBuffer != NULL) /*2*/
     {
-        if (isLegalSyntax(lineBuffer) == TRUE)
+        printf("%d:%s\n", i, lineBuffer);
+        i++;
+        /*printf("%s\n",lineBuffer);*/
+        if (strcmp(lineBuffer, "\n"))
         {
-            tokenizedLine = getTokens(lineBuffer);
-            token = tokenizedLine->head;
-            if (tokenizedLine != NULL)
+            if (isLegalSyntax(lineBuffer) == TRUE)
             {
-                if (isMdefine(getStr(token)) == TRUE) /*3*/
+                tokenizedLine = getTokens(lineBuffer);
+                token = tokenizedLine->head;
+                if (tokenizedLine != NULL)
                 {
-                    insertMdefine(tokenizedLine, MM); /*4*/
-                }
-                else
-                {
-                    if (isSymbol(getStr(token)) == TRUE) /*check if instruction, data or string*/
-                    /*5*/
+                    if (isMdefine(getStr(token)) == TRUE) /*3*/
                     {
-                        token = getNext(token);
-                        if (isData(getStr(token)) == TRUE) /*8*/
-                        {
-                            insertData(tokenizedLine, MM);
-                        }
-                        if (isString(getStr(token)) == TRUE) /*8*/
-                        {
-                            insertString(tokenizedLine, MM);
-                        }
-                        if (isOpCode(getStr(token)) == TRUE)
-                        {
-                            insertCode(tokenizedLine, MM);
-                        }
+                        insertMdefine(tokenizedLine, MM); /*4*/
                     }
-                    else /*extern,instruction line,undefined*/
+                    else
                     {
-                        if (isExtern(lineBuffer) == TRUE)
+                        if (isSymbol(getStr(token)) == TRUE) /*check if instruction, data or string*/
+                        /*5*/
                         {
-                            insertSymbol(lineBuffer, EXTERN, NULL);
-                        }
-                        if (isEntry(lineBuffer) == TRUE)
-                        {
-                            insertSymbol(lineBuffer, ENTRY, NULL);
-                        }
-                        else
-                        {
-                            if (isOpCode(lineBuffer) >= 0)
-                            { /*13*/
+                            token = getNext(token);
+                            if (isData(getStr(token)) == TRUE) /*8*/
+                            {
+                                insertData(tokenizedLine, MM);
+                            }
+                            if (isString(getStr(token)) == TRUE) /*8*/
+                            {
+                                insertString(tokenizedLine, MM);
+                            }
+                            if (isOpCode(getStr(token)) != UNDEFINED)
+                            {
                                 insertCode(tokenizedLine, MM);
+                            }
+                        }
+                        else /*extern,instruction line,undefined*/
+                        {
+                            if (isExtern(getStr(token)) == TRUE)
+                            {
+                                insertExtern(tokenizedLine, MM);
                             }
                             else
                             {
-                                /*error: no opcode*/
+                                if (isOpCode(getStr(token)) >= 0)
+                                { /*13*/
+                                    insertCode(tokenizedLine, MM);
+                                }
+                                else
+                                {
+                                    /*error: no opcode*/
+                                }
                             }
                         }
                     }
                 }
             }
+            else
+            {
+                MM->errorFlag = TRUE;
+            }
+            free(lineBuffer);
         }
-        else
+        lineBuffer = getLine(amFile);
+        if (MM->errorFlag == TRUE) /*16*/
         {
-            MM->errorFlag = TRUE;
+            /*error*/
         }
-        free(lineBuffer);
     }
     if (MM->errorFlag == TRUE) /*16*/
     {
+
+        /*error*/
     }
     else
     {
         advanceData(MM); /*17*/
+printAll(MM);
     }
 }
