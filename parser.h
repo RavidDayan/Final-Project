@@ -12,6 +12,7 @@ char *getLine(FILE *file);
 int isLegalSyntax(char *line);
 int isIlegalCharacter(char ch);
 LinkedList *getTokens(char *line);
+int isTokenSpacer(char ch);
 int isSpecialChar(char ch);
 int isMdefine(char *token);
 int isData(char *token);

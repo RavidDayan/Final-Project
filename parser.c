@@ -18,44 +18,38 @@ char *removeWhiteSpace(FILE *input)
     newFile = fopen(organizedFile, "w");
     while (buffer != EOF)
     {
-        if (buffer == '"') /*handle string*/
+        if (isSpecialChar(buffer) == TRUE)
         {
-            counter = 0;
-            while (buffer != EOF && buffer != '\n') /*go back to first ' " '*/
+            if (buffer == '"') /*handle string*/
             {
-                if (buffer == '"')
+                counter = 0;
+                while (buffer != EOF && buffer != '\n') /*go back to first ' " '*/
                 {
-                    StringEnd = counter;
+                    if (buffer == '"')
+                    {
+                        StringEnd = counter;
+                    }
+                    counter++;
+                    buffer = fgetc(input);
                 }
-                counter++;
-            }
-            fseek(input, -1 * (counter + 1), SEEK_CUR);
-            while (StringEnd >= 0)
-            {
-                buffer = fgetc(input);
-                fputc(buffer, newFile);
-                StringEnd--;
-            }
-            buffer = fgetc(input);
-            lastInserted = '"';
-            continue;
-        }
-        /*check if char is a non \n white space*/
-        if (isspace(buffer) && buffer != '\n')
-        {
-            if (isspace(lastInserted) == FALSE)
-            { /*inser whiteSpace only if the character before is not a whitespace*/
-
-                /*if last inserted is not a white space check if its not inside a []*/
-                if (sqBracketsFlag == FALSE)
+                fseek(input, -1 * (counter + 1), SEEK_CUR);
+                printf("%c\n", buffer);
+                while (StringEnd >= 0)
                 {
+                    buffer = fgetc(input);
                     fputc(buffer, newFile);
-                    lastInserted = buffer;
+                    StringEnd--;
                 }
+                buffer = fgetc(input);
+                lastInserted = '"';
+                continue;
             }
-        }
-        else
-        {
+            if (buffer == ':') /*start of brackets*/
+            {
+                fputc(buffer, newFile);
+                fputc(' ', newFile);
+                lastInserted = ' ';
+            }
             if (buffer == '[') /*start of brackets*/
             {
                 fputc(buffer, newFile);
@@ -68,17 +62,11 @@ char *removeWhiteSpace(FILE *input)
                 lastInserted = buffer;
                 sqBracketsFlag = 0;
             }
-            if (buffer == ':')
-            {
-                fputc(buffer, newFile);
-                fputc(' ', newFile);
-                lastInserted = ' ';
-            }
-            /*seperate = from both sides*/
             if (buffer == '=')
             {
                 if (isspace(lastInserted) == FALSE)
                 {
+                    /*seperate = from both sides*/
                     fputc(' ', newFile);
                     fputc(buffer, newFile);
                     fputc(' ', newFile);
@@ -93,7 +81,39 @@ char *removeWhiteSpace(FILE *input)
                     }
                 }
             }
+            if (buffer == ',')
+            {
+                if (isspace(lastInserted) != FALSE)
+                {
+                    fseek(newFile, -1, SEEK_CUR);
+                }
+                fputc(buffer, newFile);
+                lastInserted = buffer;
+            }
         }
+        else
+        {
+            /*check if char is a non \n white space*/
+            if (isspace(buffer) && buffer != '\n')
+            {
+                if (isspace(lastInserted) == FALSE && lastInserted != ',')
+                { /*inser whiteSpace only if the character before is not a whitespace*/
+
+                    /*if last inserted is not a white space check if its not inside a []*/
+                    if (sqBracketsFlag == FALSE)
+                    {
+                        fputc(buffer, newFile);
+                        lastInserted = buffer;
+                    }
+                }
+            }
+            else
+            {
+                fputc(buffer, newFile);
+                lastInserted = buffer;
+            }
+        }
+
         buffer = fgetc(input);
     }
     fclose(newFile);
@@ -170,7 +190,7 @@ LinkedList *getTokens(char *line)
             counter = lastStringIndex - firstStringIndex;
         }
 
-        while (isSpecialChar(line[i]) == FALSE)
+        while (isTokenSpacer(line[i]) == FALSE)
         {
             counter++;
             i++;
@@ -183,7 +203,7 @@ LinkedList *getTokens(char *line)
             /*go back and insert token characters up to SPECIAL character*/
             i = i - counter;
             counter = 0;
-            while (isSpecialChar(line[i]) == FALSE)
+            while (isTokenSpacer(line[i]) == FALSE)
             {
                 token[counter] = line[i];
                 counter++;
@@ -196,7 +216,7 @@ LinkedList *getTokens(char *line)
     }
     return tokens;
 }
-int isSpecialChar(char ch)
+int isTokenSpacer(char ch)
 {
     if (isspace(ch) == FALSE && ch != '\0' && ch != ',')
     {
@@ -205,6 +225,17 @@ int isSpecialChar(char ch)
     else
     {
         return TRUE;
+    }
+}
+int isSpecialChar(char ch)
+{
+    if (ch == ':' || ch == '[' || ch == ']' || ch == '"' || ch == ',' || ch == '=')
+    {
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
     }
 }
 int isLegalSyntax(char *line)
