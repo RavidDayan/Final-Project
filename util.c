@@ -23,21 +23,21 @@ char *addFileEnding(char *fileName, int type)
     {
         newFile = (char *)malloc((strlen(fileName) + 4) * sizeof(char));
         strcat(newFile, fileName);
-        strcat(fileName, ".ob");
+        strcat(newFile, ".ob");
         endingFlag = TRUE;
     }
-    if (type == EXT)
+    if (type == ENTRY)
     {
         newFile = (char *)malloc((strlen(fileName) + 5) * sizeof(char));
         strcat(newFile, fileName);
-        strcat(fileName, ".ent");
+        strcat(newFile, ".ent");
         endingFlag = TRUE;
     }
-    if (type == ENT)
+    if (type == EXTERN)
     {
         newFile = (char *)malloc((strlen(fileName) + 5) * sizeof(char));
         strcat(newFile, fileName);
-        strcat(fileName, ".ext");
+        strcat(newFile, ".ext");
         endingFlag = TRUE;
     }
     if (endingFlag == TRUE)

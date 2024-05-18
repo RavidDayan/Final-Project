@@ -1,37 +1,74 @@
 #include <stdlib.h>
+#include "stdio.h"
 #include "secondPass.h"
 #include "util.h"
-void secondPass(int ic,char * amFile)
+#include "dataStructs.h"
+#include "parser.h"
+#include "binary.h"
+void secondPass(MemoryManager *MM)
 {
-    int L=0;
+    FILE *amFile;
+    MemoryLine *ML;
+    Node *token, *code;
+    LinkedList *tokenizedLine;
+    Symbol *symbol;
     char *lineBuffer;
-    ic = 0; /*1*/
-    rewind(amFile);
+    amFile = openFile(getFT(MM->am), "r");
+    if (amFile == NULL)
+    {
+        /*error*/
+    }
+    lineBuffer = getLine(amFile);
     while (lineBuffer != NULL) /*2*/
     {
-        if (isSymbol(lineBuffer) == FALSE) /*3*/
+        if (lineBuffer[0] != '\n' && lineBuffer[0] != ';')
         {
-            if (isData(lineBuffer) != TRUE && isString(lineBuffer) != TRUE && isExtern(lineBuffer) != TRUE) /*4*/
+            tokenizedLine = getTokens(lineBuffer);
+            token = tokenizedLine->head;
+            if (isEntry(getStr(token)) == TRUE)
             {
-                if (isEntry(lineBuffer) == TRUE) /*5*/
-                {
-                    /*mark symbols with entry*/ /*6*/
-                }
-                else
-                {
-                    /*7*/
-                    ic = ic + L; /*8*/
-                }
+                insertEntry(tokenizedLine, MM);
             }
         }
         free(lineBuffer);
+        /*free tokenized line*/
+        lineBuffer = getLine(amFile);
     }
-    if (errorFlag == TRUE)
+    code = MM->code;
+    while (code != NULL)
     {
+        ML = getML(code);
+        if (ML->BMC == UNDEFINED)
+        {
+            symbol = symbolExists(getStr(ML->SC), MM);
+            if (symbol != NULL)
+            {
+                ML->BMC = setValue(0, symbol->value);
+                if (symbol->property != EXTERN)
+                {
+                    ML->BMC = setARE(ML->BMC, ENTRY);
+                    ML->type = ENTRY;
+                }
+            }
+            else
+            {
+                printf("%s", getStr(ML->SC));
+                /*error:undecalred symbol*/
+                MM->errorFlag = TRUE;
+            }
+        }
+        code = getNext(code);
+    }
+
+    if (MM->errorFlag == TRUE)
+    {
+
+        printf("error");
         /*handle error*/
     }
     else
     {
-        buildFiles();
+        printf("\n");
+        printAll(MM);
     }
 }

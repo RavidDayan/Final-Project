@@ -6,12 +6,11 @@
 #include <string.h>
 void firstPass(MemoryManager *MM)
 {
-    int i = 1;
     FILE *amFile;
     LinkedList *tokenizedLine;
+    
     Node *token;
     char *lineBuffer;
-
     amFile = openFile(getFT(MM->am), "r");
     if (amFile == NULL)
     {
@@ -20,10 +19,8 @@ void firstPass(MemoryManager *MM)
     lineBuffer = getLine(amFile);
     while (lineBuffer != NULL) /*2*/
     {
-        printf("%d:%s\n", i, lineBuffer);
-        i++;
-        /*printf("%s\n",lineBuffer);*/
-        if (strcmp(lineBuffer, "\n"))
+        printf("%s\n",lineBuffer);
+        if (strcmp(lineBuffer, "\n")!=0 && lineBuffer[0]!=';')
         {
             if (isLegalSyntax(lineBuffer) == TRUE)
             {
@@ -60,7 +57,7 @@ void firstPass(MemoryManager *MM)
                             {
                                 insertExtern(tokenizedLine, MM);
                             }
-                            else
+                            if (isEntry(getStr(token)) == FALSE)
                             {
                                 if (isOpCode(getStr(token)) >= 0)
                                 { /*13*/
@@ -95,6 +92,6 @@ void firstPass(MemoryManager *MM)
     else
     {
         advanceData(MM); /*17*/
-printAll(MM);
+        printAll(MM);
     }
 }

@@ -8,5 +8,5 @@ int setRegSrc(int memory, int reg);
 int setCode(int memory,int Code);
 int setValue(int memory,int Code);
 void printBinary(int num);
-void printQuadnary(int binary);
+void binToQuantPrint(int binary, FILE *file);
 #endif

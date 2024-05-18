@@ -41,15 +41,31 @@ void printBinary(int num)
     }
     printf("\n");
 }
-void printQuadnary(int binary)
+void binToQuantPrint(int binary, FILE *file)
 {
-    int i;
+    char *quant[7];
+    int i, j = 0;
     int quad;
     for (i = 12; i >= 0; i = i - 2)
     {
-        quad = binary;
         quad = (binary >> i) & 3;
-        printf("%d", quad);
+        switch (quad)
+        {
+        case 0:
+            quant[j] = '*';
+            break;
+        case 1:
+            quant[j] = '#';
+            break;
+        case 2:
+            quant[j] = '%';
+            break;
+        case 3:
+            quant[j] = '!';
+            break;
+        }
+        fprintf(file, "%c", quant[j]);
+        j++;
     }
-    printf("\n");
+    fprintf(file, "\n");
 }

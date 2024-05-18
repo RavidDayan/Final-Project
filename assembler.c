@@ -7,7 +7,7 @@
 #include "preProccess.h"
 #include "firstPass.h"
 #include "secondPass.h"
-
+#include "buildFiles.h"
 
 void assemble(char *fileName);
 int main(int argc, char *argv[])
@@ -29,9 +29,9 @@ int main(int argc, char *argv[])
 void assemble(char *fileName)
 {
     MemoryManager *memoryManager;
-    memoryManager=newMemoryManager(fileName);
+    memoryManager = newMemoryManager(fileName);
+    preProccess(memoryManager);
     firstPass(memoryManager);
-    /*
-    secondPass();
-    BuildFIles();*/
+    secondPass(memoryManager);
+    buildFiles(memoryManager);
 }
