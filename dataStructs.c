@@ -98,6 +98,8 @@ void insertMdefine(LinkedList *line, MemoryManager *MM)
     if (line->size != MDEFINE_SIZE)
     {
         errorIlegalWordCount(MM->currentLine, getFT(MM->as)->name, getStr(token));
+        MM->errorFlag=TRUE;
+        return;
     }
     else
     {
@@ -123,23 +125,28 @@ void insertMdefine(LinkedList *line, MemoryManager *MM)
                     else
                     {
                         errorIlegalInteger(MM->currentLine, getFT(MM->as)->name, getStr(token));
+                        MM->errorFlag=TRUE;
+                        return;
                     }
                 }
                 else
                 {
                     errorMissingWord(MM->currentLine, getFT(MM->as)->name, "=");
+                    MM->errorFlag=TRUE;
                     return;
                 }
             }
             else
             {
                 errorDuplicateSymbol(MM->currentLine, getFT(MM->as)->name, symbolName);
+                MM->errorFlag=TRUE;
                 return;
             }
         }
         else
         {
             errorIlegalLabel(MM->currentLine, getFT(MM->as)->name, getStr(token));
+            MM->errorFlag=TRUE;
             return;
         }
     }
@@ -151,12 +158,16 @@ void insertExtern(LinkedList *line, MemoryManager *MM)
     if (line->size != 2) /*extern should have only 2 words extern label*/
     {
         errorIlegalWordCount(MM->currentLine, getFT(MM->as)->name, "extern");
+        MM->errorFlag=TRUE;
+        return;
     }
     token = getNext(token);
     symbol = symbolExists(getStr(token), MM);
     if (symbol != NULL)
     {
         errorDuplicateSymbol(MM->currentLine, getFT(MM->as)->name, getStr(token));
+        MM->errorFlag=TRUE;
+        return;
     }
     else
     {
@@ -173,6 +184,7 @@ void insertEntry(LinkedList *line, MemoryManager *MM)
     if (line->size != 2)
     {
         errorIlegalWordCount(MM->currentLine, getFT(MM->as)->name, "entry");
+        MM->errorFlag=TRUE;
         return;
     }
     else
@@ -188,12 +200,14 @@ void insertEntry(LinkedList *line, MemoryManager *MM)
             else
             {
                 errorCouldNotSetEntry(MM->currentLine, getFT(MM->as)->name, getStr(token));
+                MM->errorFlag=TRUE;
                 return;
             }
         }
         else
         {
             errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, getStr(token));
+            MM->errorFlag=TRUE;
             return;
         }
     }
@@ -254,27 +268,32 @@ int GetArrayData(char *token, MemoryManager *MM)
     if (labelFlag == TRUE)
     {
         value = symbolExists(symbol, MM);
-        free(symbol);
         if (value == NULL)
         {
-            /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
+            errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, symbol);
+            free(symbol);
+            MM->errorFlag=TRUE;
         }
         else
         {
+            free(symbol);
             return value->value;
         }
     }
     else
     {
         i = stringToInt(symbol, &success);
-        free(symbol);
         if (success == TRUE)
         {
+            free(symbol);
+
             return i;
         }
         else
         {
-            /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
+            errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, symbol);
+            free(symbol);
+            MM->errorFlag=TRUE;
         }
     }
     return UNDEFINED;
@@ -302,7 +321,7 @@ char *GetArrayDataSymbol(char *token, MemoryManager *MM)
     symbol = (char *)malloc(sizeof(char) * (counter + 1));
     if (symbol == NULL)
     {
-            errorCouldNotAllocateMemory();
+        errorCouldNotAllocateMemory();
     }
     counter = 0;
     i = 0;
@@ -338,8 +357,8 @@ char *getArraySymbol(char *token)
     }
     symbol = (char *)malloc(sizeof(char) * (i + 1));
     if (symbol == NULL)
-    {   
-            errorCouldNotAllocateMemory();   
+    {
+        errorCouldNotAllocateMemory();
     }
     i = 0;
     while (token[i] != '[')
@@ -355,8 +374,8 @@ char *getSymbolFromDecleration(char *decleration)
     int i = 0;
     char *symbol = (char *)malloc(sizeof(char));
     if (symbol == NULL)
-    { 
-            errorCouldNotAllocateMemory();  
+    {
+        errorCouldNotAllocateMemory();
     }
     while (isalnum(decleration[i]) != 0)
     {
@@ -395,6 +414,9 @@ void insertData(LinkedList *line, MemoryManager *MM)
                 if ((symbol = symbolExists(getStr(token), MM)) != NULL) /*is it a known symbol?*/
                 {
                     number = symbol->value;
+                    MM->dc = MM->dc + 1;
+                    ML = newMemoryLine(MM->dc);
+                    ML->BMC = number;
                 }
                 else
                 {
@@ -419,11 +441,22 @@ void insertData(LinkedList *line, MemoryManager *MM)
                         number = GetArrayData(getStr(token), MM);
                         if (number == UNDEFINED)
                         {
+                            MM->errorFlag=TRUE;
+                            return;
+                        }
+                        else
+                        {
+                            MM->dc = MM->dc + 1;
+                            ML = newMemoryLine(MM->dc);
+                            ML->BMC = number;
+                            ML->SC = newNode(arraySymbol);
                         }
                     }
                     else
                     {
-                        /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
+                        errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, getStr(token));
+                        MM->errorFlag=TRUE;
+                        return;
                     }
                 }
             }
@@ -432,15 +465,18 @@ void insertData(LinkedList *line, MemoryManager *MM)
                 number = stringToInt(getStr(token), &succesfullConverted);
                 if (succesfullConverted == FALSE)
                 {
-                    /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
+                    errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, getStr(token));
+                    MM->errorFlag=TRUE;
+                    return;
                 }
+                MM->dc = MM->dc + 1;
+                ML = newMemoryLine(MM->dc);
+                ML->BMC = number;
             }
-            MM->dc = MM->dc + 1;
-            ML = newMemoryLine(MM->dc);
-            ML->BMC = number;
             if (firstDigit) /*is it the first line of .data?*/
             {
                 ML->SC = line->head;
+                firstDigit = FALSE;
             }
             else
             {
@@ -452,7 +488,9 @@ void insertData(LinkedList *line, MemoryManager *MM)
     }
     else /*print error if duplicate*/
     {
-        /*manageError(NO_LINE, DUPLICATE_SYMBOL, NO_TOKEN);*/
+        errorDuplicateSymbol(MM->currentLine, getFT(MM->as)->name, getStr(token));
+        MM->errorFlag=TRUE;
+        return;
     }
 }
 void insertString(LinkedList *line, MemoryManager *MM)
@@ -477,7 +515,9 @@ void insertString(LinkedList *line, MemoryManager *MM)
         string = getStr(token);
         if (string[i] != '"')
         {
-            /*manageError(NO_LINE, NO_STRING_START_END, NO_TOKEN);*/
+            errorMissingWord(MM->currentLine, getFT(MM->as)->name, "''");
+            MM->errorFlag=TRUE;
+            return;
         }
         else
         {
@@ -505,7 +545,9 @@ void insertString(LinkedList *line, MemoryManager *MM)
     }
     else
     {
-        /*manageError(NO_LINE, DUPLICATE_SYMBOL, NO_TOKEN);*/
+        errorDuplicateSymbol(MM->currentLine, getFT(MM->as)->name, getStr(token));
+        MM->errorFlag=TRUE;
+        return;
     }
 }
 void insertCode(LinkedList *line, MemoryManager *MM)
@@ -524,7 +566,9 @@ void insertCode(LinkedList *line, MemoryManager *MM)
         symbol = symbolExists(getStr(token), MM);
         if (symbol != NULL)
         {
-            /*manageError(NO_LINE, DUPLICATE_SYMBOL, NO_TOKEN);*/
+            errorDuplicateSymbol(MM->currentLine, getFT(MM->as)->name, getStr(token));
+            MM->errorFlag=TRUE;
+            return;
         }
         else
         {
@@ -595,12 +639,16 @@ void insertCode(LinkedList *line, MemoryManager *MM)
         }
         else
         {
-            /*manageError(NO_LINE, COULD_NOT_MATCH_WORDS_COUNT, NO_TOKEN);*/
+            errorIlegalWordCount(MM->currentLine, getFT(MM->as)->name, "operation");
+            MM->errorFlag=TRUE;
+            return;
         }
     }
     else
     {
-        /*manageError(NO_LINE, ILLEGAL_OPCODE, NO_TOKEN);*/
+        errorMissingWord(MM->currentLine, getFT(MM->as)->name, "operation code");
+        MM->errorFlag=TRUE;
+        return;
     }
 }
 /*void insertSymbol();*/
@@ -816,14 +864,16 @@ int getImidiateValue(char *token, MemoryManager *MM)
         symbol = symbolExists(symbolPointer, MM);
         if (symbol == NULL)
         {
-            /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
+            errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, symbolPointer);
+            MM->errorFlag=TRUE;
             return UNDEFINED;
         }
         else
         {
             if (symbol->property != MDEFINE)
             {
-                /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
+                errorIlegalWordPlace(MM->currentLine, getFT(MM->as)->name, "#", token, symbolPointer, "defined value or +/-[digit][digit]...");
+                MM->errorFlag=TRUE;
                 return UNDEFINED;
             }
             else
@@ -885,7 +935,7 @@ void printAll(MemoryManager *MM)
 FileTracker *newFileTracker(char *name)
 {
     FileTracker *newFile = (FileTracker *)malloc(sizeof(FileTracker));
-    if(newFile==NULL)
+    if (newFile == NULL)
     {
         errorCouldNotAllocateMemory();
     }
@@ -961,7 +1011,7 @@ MemoryLine *newMemoryLine(int address)
     MemoryLine *newML = (MemoryLine *)malloc(sizeof(MemoryLine));
     if (newML == NULL)
     {
-        /*manageError(NO_LINE, COULD_NOT_ALLOCATE_MEMORY, NO_TOKEN);*/
+        errorCouldNotAllocateMemory();
     }
     newML->DA = address;
     newML->BMC = 0;

@@ -79,6 +79,7 @@ void preProccess(MemoryManager *MM)
                         else
                         {
                             errorDuplicateMacro(MM->currentLine, token, getFT(MM->as)->name);
+                            MM->errorFlag=TRUE;
                         }
                     }
                     else

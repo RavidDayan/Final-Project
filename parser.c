@@ -242,8 +242,9 @@ int isSpecialChar(char ch)
         return FALSE;
     }
 }
-int isLegalSyntax(char *line)
+int isLegalSyntax(char *line, MemoryManager *MM)
 {
+    char c;
     int i = 0, allowedCommaFlag = FALSE, lastStringChar = 0, closedString = FALSE, decalreFLag = FALSE;
     if (line[0] == ';') /*comment line*/
     {
@@ -251,7 +252,8 @@ int isLegalSyntax(char *line)
     }
     if (line[0] != '.' && isalpha(line[0]) == FALSE && line[0] != '\n') /* either starts with symbol or .extern/define/data/string/entry*/
     {
-        /*manageError(NO_LINE, ILLEGAL_CHARACTER , NO_TOKEN);*/
+        c = line[0];
+        errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " start", "of line", c, "',',letter, empty line");
         return FALSE;
     }
     i = 0;
@@ -259,7 +261,8 @@ int isLegalSyntax(char *line)
     {
         if (isIlegalCharacter(line[i]) == TRUE) /* is not a special character outside of a string : , [ ] . # " or alphnum*/
         {
-            /*manageError(NO_LINE, ILLEGAL_CHARACTER , NO_TOKEN);*/ return FALSE;
+            errorIlegalCharacter(MM->currentLine, getFT(MM->as)->name, line[i]);
+            return FALSE;
         }
         if (line[i] == '"') /*handle string from first " to last "*/
         {
@@ -275,7 +278,7 @@ int isLegalSyntax(char *line)
             }
             if (closedString == FALSE)
             {
-                /*manageError(NO_LINE, NO_STRING_START_END , NO_TOKEN);*/
+                errorMissingWord(MM->currentLine, getFT(MM->as)->name, "closing ''");
                 return FALSE;
             }
             else
@@ -290,7 +293,7 @@ int isLegalSyntax(char *line)
         {
             if (isalnum(line[i - 1]) == FALSE)
             {
-                /*manageError(NO_LINE, ILLEGAL_CHARACTER_BEFORE , NO_TOKEN);*/
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " before", "[]", line[i - 1], "letter or integer without spaces");
                 return FALSE;
             }
             i++;
@@ -298,13 +301,15 @@ int isLegalSyntax(char *line)
             {
                 if (isalnum(line[i]) == FALSE)
                 {
-                    /*manageError(NO_LINE, ILLEGAL_CHARACTER_AFTER , NO_TOKEN);*/ return FALSE;
+                    errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " inside", "[]", line[i], "letter or integer without spaces");
+                    return FALSE;
                 }
                 i++;
             }
             if (line[i] != ']')
             {
-                /*manageError(NO_LINE, NO_MISSING_BRACKETS , NO_TOKEN);*/
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " after", "[ + symbol", line[i], "]");
+
                 return FALSE;
             }
             i++;
@@ -312,8 +317,8 @@ int isLegalSyntax(char *line)
             continue;
         }
         if (line[i] == ']')
-        {   /*] should be handled in [,otherwise its alone*/
-            /*manageError(NO_LINE, NO_MISSING_BRACKETS , NO_TOKEN);*/
+        { /*] should be handled in [,otherwise its alone*/
+            errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " before", "]", line[i], "[+ symbol");
             return FALSE;
         }
         if (line[i] == ':') /*check alnum before : and no 2 : in line*/
@@ -321,12 +326,12 @@ int isLegalSyntax(char *line)
             decalreFLag++;
             if (isalnum(line[i - 1]) == FALSE)
             {
-                /*manageError(NO_LINE, ILLEGAL_CHARACTER_BEFORE , NO_TOKEN);*/
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " before", ":", line[i - 1], "letter or integer");
                 return FALSE;
             }
             if (decalreFLag == 2)
             {
-                /*manageError(NO_LINE, COULD_NOT_DECALRE_TWICE , NO_TOKEN);*/
+                errorIlegalWordPlace(MM->currentLine, getFT(MM->as)->name, "after", "symbol decleration", "another decleration", "non decleration");
                 return FALSE;
             }
             allowedCommaFlag = FALSE;
@@ -336,12 +341,7 @@ int isLegalSyntax(char *line)
             decalreFLag++;
             if (line[i - 1] != ' ' || line[i + 1] != ' ')
             {
-                /*manageError(NO_LINE, ILLEGAL_CHARACTER , NO_TOKEN);*/
-                return FALSE;
-            }
-            if (decalreFLag == 2)
-            {
-                /*manageError(NO_LINE, COULD_NOT_DECALRE_TWICE , NO_TOKEN);*/
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " before and after", "=", line[i - 1], "spaces");
                 return FALSE;
             }
             allowedCommaFlag = FALSE;
@@ -350,7 +350,7 @@ int isLegalSyntax(char *line)
         {
             if (isdigit(line[i + 1]) == FALSE)
             {
-                /*manageError(NO_LINE, ILLEGAL_CHARACTER_AFTER , NO_TOKEN);*/
+                errorIlegalWordPlace(MM->currentLine, getFT(MM->as)->name, "after", "symbol decleration", "another decleration", "non decleration");
                 return FALSE;
             }
             allowedCommaFlag = TRUE;
@@ -359,7 +359,7 @@ int isLegalSyntax(char *line)
         {
             if (isalnum(line[i + 1]) == FALSE && line[i + 1] != '-' && line[i + 1] != '+')
             {
-                /*manageError(NO_LINE, ILLEGAL_CHARACTER_AFTER , NO_TOKEN);*/
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " after", "#", line[i + 1], "+/-[digit][digit]...");
                 return FALSE;
             }
             allowedCommaFlag = TRUE;
@@ -369,7 +369,7 @@ int isLegalSyntax(char *line)
             i++;
             if (isalpha(line[i]) == FALSE)
             {
-                /*manageError(NO_LINE, ILLEGAL_CHARACTER_AFTER , NO_TOKEN);*/
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " after", ". ", line[i], "data/string/define/extern/entry");
                 return FALSE;
             }
             i++;
@@ -379,7 +379,7 @@ int isLegalSyntax(char *line)
             }
             if (isspace(line[i]) == FALSE && line[i] != '\0')
             {
-                /*manageError(NO_LINE, ILLEGAL_CHARACTER_AFTER , NO_TOKEN);*/
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " after", ".operand ", line[i], "letter or number");
                 return FALSE;
             }
             allowedCommaFlag = FALSE;
@@ -389,7 +389,7 @@ int isLegalSyntax(char *line)
         {
             if (allowedCommaFlag == FALSE)
             {
-                /*manageError(NO_LINE, ILLEGAL_CONSECUTIVE , NO_TOKEN);*/
+                errorIlegalWordPlace(MM->currentLine, getFT(MM->as)->name, "after", ",", ",", "non consecutive commas");
                 return FALSE;
             }
             allowedCommaFlag = FALSE;
@@ -398,7 +398,7 @@ int isLegalSyntax(char *line)
         {
             if (isalnum(line[i + 1]) == FALSE || isalnum(line[i - 1]) == FALSE)
             {
-                /*manageError(NO_LINE, ILLEGAL_CHARACTER , NO_TOKEN);*/
+                errorIlegalWordPlace(MM->currentLine, getFT(MM->as)->name, " after and before", "_", "non letter or number", "letter or number");
                 return FALSE;
             }
         }
@@ -414,7 +414,6 @@ int isIlegalCharacter(char ch)
 {
     if (isspace(ch) == FALSE && isalnum(ch) == FALSE && ch != ',' && ch != '=' && ch != ':' && ch != '.' && ch != '#' && ch != '"' && ch != '-' && ch != '+' && ch != '[' && ch != ']' && ch != '_')
     {
-        printf("the character is:'%c'\n", ch);
         return TRUE;
     }
     else

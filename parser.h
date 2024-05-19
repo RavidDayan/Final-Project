@@ -9,7 +9,7 @@
 
 char *removeWhiteSpace(FILE *file);
 char *getLine(FILE *file);
-int isLegalSyntax(char *line);
+int isLegalSyntax(char *line,MemoryManager *MM);
 int isIlegalCharacter(char ch);
 LinkedList *getTokens(char *line);
 int isTokenSpacer(char ch);

@@ -25,7 +25,7 @@ void firstPass(MemoryManager *MM)
         printf("%s\n", lineBuffer);
         if (strcmp(lineBuffer, "\n") != 0 && lineBuffer[0] != ';')
         {
-            if (isLegalSyntax(lineBuffer) == TRUE)
+            if (isLegalSyntax(lineBuffer,MM) == TRUE)
             {
                 tokenizedLine = getTokens(lineBuffer);
                 token = tokenizedLine->head;
@@ -70,6 +70,7 @@ void firstPass(MemoryManager *MM)
                                 else
                                 {
                                     errorMissingWord(MM->currentLine, getFT(MM->as)->name, "legal operation");
+                                    MM->errorFlag=TRUE;
                                 }
                             }
                             }
@@ -87,7 +88,6 @@ void firstPass(MemoryManager *MM)
     }
     if (MM->errorFlag == TRUE) /*16*/
     {
-
         return;
     }
     else
