@@ -1,9 +1,11 @@
 #include "errors.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "MemoryCollector.h"
 
 void exitProgram()
 {
+    releaseAllFileMemory();
     exit(0);
 }
 
@@ -17,7 +19,7 @@ void errorCouldNotAllocateMemory()
 {
     fprintf(stderr, "critical error:could not allocate new memory\n");
     fprintf(stderr, "the program is shutting down...\n");
-    exitProgram();
+    releaseAllFileMemory();
 }
 void errorCouldNotSetEntry(int line, char *fileName, char *Extern)
 {

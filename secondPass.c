@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "binary.h"
 #include "errors.h"
+#include "MemoryCollector.h"
 void secondPass(MemoryManager *MM)
 {
     FILE *amFile;
@@ -19,9 +20,11 @@ void secondPass(MemoryManager *MM)
     {
         errorCouldNotOpenFile(getFT(MM->am)->name);
     }
+    MM->currentLine = 0;
     lineBuffer = getLine(amFile);
     while (lineBuffer != NULL) /*2*/
     {
+        MM->currentLine++;
         if (lineBuffer[0] != '\n' && lineBuffer[0] != ';')
         {
             tokenizedLine = getTokens(lineBuffer);
@@ -31,13 +34,14 @@ void secondPass(MemoryManager *MM)
                 insertEntry(tokenizedLine, MM);
             }
         }
-        free(lineBuffer);
         /*free tokenized line*/
         lineBuffer = getLine(amFile);
     }
     code = MM->code;
+    MM->currentLine = 0;
     while (code != NULL)
     {
+        MM->currentLine++;
         ML = getML(code);
         if (ML->BMC == UNDEFINED)
         {
@@ -58,17 +62,5 @@ void secondPass(MemoryManager *MM)
             }
         }
         code = getNext(code);
-    }
-
-    if (MM->errorFlag == TRUE)
-    {
-
-        printf("error");
-        /*handle error*/
-    }
-    else
-    {
-        printf("\n");
-        printAll(MM);
     }
 }

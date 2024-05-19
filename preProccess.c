@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "util.h"
 #include "errors.h"
+#include "MemoryCollector.h"
 
 void preProccess(MemoryManager *MM)
 {
@@ -55,6 +56,11 @@ void preProccess(MemoryManager *MM)
                         {
                             errorCouldNotAllocateMemory();
                         }
+                        else
+                        {
+                            addToCollector(newNode(currentMcro->data), StringCollector);
+                        }
+
                         strcpy(currentMcro->data, lineBuffer);
                     }
                     else
@@ -79,7 +85,7 @@ void preProccess(MemoryManager *MM)
                         else
                         {
                             errorDuplicateMacro(MM->currentLine, token, getFT(MM->as)->name);
-                            MM->errorFlag=TRUE;
+                            MM->errorFlag = TRUE;
                         }
                     }
                     else
@@ -96,7 +102,6 @@ void preProccess(MemoryManager *MM)
                     }
                 }
             }
-            free(lineBuffer);
             lineBuffer = getLine(organizedAsFile);
         }
         CloseFile(MM->am->data);

@@ -2,12 +2,14 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include "stdio.h"
 #include "util.h"
 #include "dataStructs.h"
 #include "preProccess.h"
 #include "firstPass.h"
 #include "secondPass.h"
 #include "buildFiles.h"
+#include "MemoryCollector.h"
 
 void assemble(char *fileName);
 int main(int argc, char *argv[])
@@ -30,6 +32,7 @@ void assemble(char *fileName)
 {
     MemoryManager *memoryManager;
     memoryManager = newMemoryManager(fileName);
+    memoryStorage=memoryManager;
     preProccess(memoryManager);
     if (memoryManager->errorFlag == TRUE)
     {
@@ -46,4 +49,5 @@ void assemble(char *fileName)
         return;
     }
     buildFiles(memoryManager);
+    releaseAllFileMemory();
 }

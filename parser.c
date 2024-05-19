@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "util.h"
 #include "errors.h"
+#include "MemoryCollector.h"
 
 char *removeWhiteSpace(FILE *input)
 {
@@ -110,6 +111,10 @@ char *removeWhiteSpace(FILE *input)
             }
             else
             {
+                if (buffer == '\n' && isspace(lastInserted) != FALSE && lastInserted != '\n')
+                {
+                    fseek(newFile, -1, SEEK_CUR);
+                }
                 fputc(buffer, newFile);
                 lastInserted = buffer;
             }
@@ -154,10 +159,14 @@ char *getLine(FILE *file)
     {
         /*trigger more than MAX_LINE_CHARS characters*/
     }
-    returned = (char *)malloc(sizeof(char));
+    returned = (char *)malloc(sizeof(char) * (counter + 1));
     if (returned == NULL)
     {
         errorCouldNotAllocateMemory();
+    }
+    else
+    {
+        addToCollector(newNode(returned), StringCollector);
     }
     strcpy(returned, line);
     return returned;
@@ -203,6 +212,10 @@ LinkedList *getTokens(char *line)
             if (token == NULL)
             {
                 errorCouldNotAllocateMemory();
+            }
+            else
+            {
+                addToCollector(newNode(token), StringCollector);
             }
             /*go back and insert token characters up to SPECIAL character*/
             i = i - counter;

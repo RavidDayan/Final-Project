@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "errors.h"
+#include "MemoryCollector.h"
+#include "dataStructs.h"
 char *addFileEnding(char *fileName, int type)
 {
     int endingFlag = FALSE;
@@ -12,6 +14,10 @@ char *addFileEnding(char *fileName, int type)
         if (newFile == NULL)
         {
             errorCouldNotAllocateMemory();
+        }
+        else
+        {
+            addToCollector(newNode(newFile), StringCollector);
         }
         strcat(newFile, fileName);
         strcat(newFile, ".as");
@@ -24,6 +30,10 @@ char *addFileEnding(char *fileName, int type)
         {
             errorCouldNotAllocateMemory();
         }
+        else
+        {
+            addToCollector(newNode(newFile), StringCollector);
+        }
         strcat(newFile, fileName);
         strcat(newFile, ".am");
         endingFlag = TRUE;
@@ -34,6 +44,10 @@ char *addFileEnding(char *fileName, int type)
         if (newFile == NULL)
         {
             errorCouldNotAllocateMemory();
+        }
+        else
+        {
+            addToCollector(newNode(newFile), StringCollector);
         }
         strcat(newFile, fileName);
         strcat(newFile, ".ob");
@@ -46,6 +60,10 @@ char *addFileEnding(char *fileName, int type)
         {
             errorCouldNotAllocateMemory();
         }
+        else
+        {
+            addToCollector(newNode(newFile), StringCollector);
+        }
         strcat(newFile, fileName);
         strcat(newFile, ".ent");
         endingFlag = TRUE;
@@ -56,6 +74,10 @@ char *addFileEnding(char *fileName, int type)
         if (newFile == NULL)
         {
             errorCouldNotAllocateMemory();
+        }
+        else
+        {
+            addToCollector(newNode(newFile), StringCollector);
         }
         strcat(newFile, fileName);
         strcat(newFile, ".ext");
