@@ -46,6 +46,7 @@ typedef struct MemoryManager
     int ic;
     int dc;
     int errorFlag;
+    int currentLine;
 } MemoryManager;
 typedef struct FileTracker
 {

@@ -1,6 +1,7 @@
 #include "util.h"
 #include <stdlib.h>
 #include <string.h>
+#include "errors.h"
 char *addFileEnding(char *fileName, int type)
 {
     int endingFlag = FALSE;
@@ -8,6 +9,10 @@ char *addFileEnding(char *fileName, int type)
     if (type == AS)
     {
         newFile = (char *)malloc((strlen(fileName) + 4) * sizeof(char));
+        if (newFile == NULL)
+        {
+            errorCouldNotAllocateMemory();
+        }
         strcat(newFile, fileName);
         strcat(newFile, ".as");
         endingFlag = TRUE;
@@ -15,13 +20,21 @@ char *addFileEnding(char *fileName, int type)
     if (type == AM)
     {
         newFile = (char *)malloc((strlen(fileName) + 4) * sizeof(char));
-       strcat(newFile, fileName);
+        if (newFile == NULL)
+        {
+            errorCouldNotAllocateMemory();
+        }
+        strcat(newFile, fileName);
         strcat(newFile, ".am");
         endingFlag = TRUE;
     }
     if (type == OB)
     {
         newFile = (char *)malloc((strlen(fileName) + 4) * sizeof(char));
+        if (newFile == NULL)
+        {
+            errorCouldNotAllocateMemory();
+        }
         strcat(newFile, fileName);
         strcat(newFile, ".ob");
         endingFlag = TRUE;
@@ -29,6 +42,10 @@ char *addFileEnding(char *fileName, int type)
     if (type == ENTRY)
     {
         newFile = (char *)malloc((strlen(fileName) + 5) * sizeof(char));
+        if (newFile == NULL)
+        {
+            errorCouldNotAllocateMemory();
+        }
         strcat(newFile, fileName);
         strcat(newFile, ".ent");
         endingFlag = TRUE;
@@ -36,6 +53,10 @@ char *addFileEnding(char *fileName, int type)
     if (type == EXTERN)
     {
         newFile = (char *)malloc((strlen(fileName) + 5) * sizeof(char));
+        if (newFile == NULL)
+        {
+            errorCouldNotAllocateMemory();
+        }
         strcat(newFile, fileName);
         strcat(newFile, ".ext");
         endingFlag = TRUE;
@@ -55,8 +76,8 @@ int stringToInt(char *number, int *success)
     int i = 0;
     int multiplyer = 1;
     int decimal = 1;
-    int numbeValue=0;
-    int result=0;
+    int numbeValue = 0;
+    int result = 0;
     if (number == NULL || *number == '\0' || (number[0] != '+' && number[0] != '-' && isdigit(number[0]) == FALSE))
     {
         *success = FALSE;
@@ -85,7 +106,7 @@ int stringToInt(char *number, int *success)
     i--;
     while (counter > 0)
     {
-        numbeValue=number[i]-'0';
+        numbeValue = number[i] - '0';
         result = (numbeValue * decimal) + result;
         decimal = decimal * 10;
         counter--;

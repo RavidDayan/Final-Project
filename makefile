@@ -4,5 +4,5 @@ LIBS = -lm
 
 all: assembler
 
-assembler: util.c binary.c dataStructs.c buildFiles.c parser.c  preProccess.c firstPass.c secondPass.c garbageCollector.c opcode.c assembler.c
-	$(CC) $(CFLAGS) util.c binary.c dataStructs.c buildFiles.c parser.c  preProccess.c firstPass.c secondPass.c garbageCollector.c opcode.c assembler.c -o assembler $(LIBS)
+assembler: util.c binary.c errors.c dataStructs.c  buildFiles.c parser.c  preProccess.c firstPass.c secondPass.c garbageCollector.c opcode.c assembler.c
+	$(CC) $(CFLAGS) util.c binary.c errors.c dataStructs.c  buildFiles.c parser.c  preProccess.c firstPass.c secondPass.c garbageCollector.c opcode.c assembler.c -o assembler $(LIBS)

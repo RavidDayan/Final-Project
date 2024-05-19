@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "util.h"
+#include "errors.h"
 
 char *removeWhiteSpace(FILE *input)
 {
@@ -138,8 +139,9 @@ char *getLine(FILE *file)
         {
             return NULL;
         }
-        else{
-            buffer='\n';
+        else
+        {
+            buffer = '\n';
         }
     }
     if (buffer == '\n')
@@ -155,8 +157,7 @@ char *getLine(FILE *file)
     returned = (char *)malloc(sizeof(char));
     if (returned == NULL)
     {
-        printf("Memory allocation failed.\n");
-        exit(0);
+        errorCouldNotAllocateMemory();
     }
     strcpy(returned, line);
     return returned;
@@ -199,6 +200,10 @@ LinkedList *getTokens(char *line)
         if (counter > 0)
         {
             token = (char *)malloc(sizeof(char) * (counter + 1));
+            if (token == NULL)
+            {
+                errorCouldNotAllocateMemory();
+            }
             /*go back and insert token characters up to SPECIAL character*/
             i = i - counter;
             counter = 0;
@@ -246,7 +251,7 @@ int isLegalSyntax(char *line)
     }
     if (line[0] != '.' && isalpha(line[0]) == FALSE && line[0] != '\n') /* either starts with symbol or .extern/define/data/string/entry*/
     {
-        /*error:ilegal character placement*/
+        /*manageError(NO_LINE, ILLEGAL_CHARACTER , NO_TOKEN);*/
         return FALSE;
     }
     i = 0;
@@ -254,8 +259,7 @@ int isLegalSyntax(char *line)
     {
         if (isIlegalCharacter(line[i]) == TRUE) /* is not a special character outside of a string : , [ ] . # " or alphnum*/
         {
-            /*error:ilegal character*/
-            return FALSE;
+            /*manageError(NO_LINE, ILLEGAL_CHARACTER , NO_TOKEN);*/ return FALSE;
         }
         if (line[i] == '"') /*handle string from first " to last "*/
         {
@@ -271,7 +275,7 @@ int isLegalSyntax(char *line)
             }
             if (closedString == FALSE)
             {
-                /*error:missing closing "*/
+                /*manageError(NO_LINE, NO_STRING_START_END , NO_TOKEN);*/
                 return FALSE;
             }
             else
@@ -286,7 +290,7 @@ int isLegalSyntax(char *line)
         {
             if (isalnum(line[i - 1]) == FALSE)
             {
-                /*error:ilegala character before brackets*/
+                /*manageError(NO_LINE, ILLEGAL_CHARACTER_BEFORE , NO_TOKEN);*/
                 return FALSE;
             }
             i++;
@@ -294,14 +298,13 @@ int isLegalSyntax(char *line)
             {
                 if (isalnum(line[i]) == FALSE)
                 {
-                    /*error: illegal character in brackets*/
-                    return FALSE;
+                    /*manageError(NO_LINE, ILLEGAL_CHARACTER_AFTER , NO_TOKEN);*/ return FALSE;
                 }
                 i++;
             }
             if (line[i] != ']')
             {
-                /*error: no closing brackets*/
+                /*manageError(NO_LINE, NO_MISSING_BRACKETS , NO_TOKEN);*/
                 return FALSE;
             }
             i++;
@@ -309,8 +312,8 @@ int isLegalSyntax(char *line)
             continue;
         }
         if (line[i] == ']')
-        { /*] should be handled in [,otherwise its alone*/
-            /*error: no opening brackets*/
+        {   /*] should be handled in [,otherwise its alone*/
+            /*manageError(NO_LINE, NO_MISSING_BRACKETS , NO_TOKEN);*/
             return FALSE;
         }
         if (line[i] == ':') /*check alnum before : and no 2 : in line*/
@@ -318,12 +321,12 @@ int isLegalSyntax(char *line)
             decalreFLag++;
             if (isalnum(line[i - 1]) == FALSE)
             {
-                /*error: ilegal character before :*/
+                /*manageError(NO_LINE, ILLEGAL_CHARACTER_BEFORE , NO_TOKEN);*/
                 return FALSE;
             }
             if (decalreFLag == 2)
             {
-                /*error: cannt declare more than once in a line :*/
+                /*manageError(NO_LINE, COULD_NOT_DECALRE_TWICE , NO_TOKEN);*/
                 return FALSE;
             }
             allowedCommaFlag = FALSE;
@@ -333,12 +336,12 @@ int isLegalSyntax(char *line)
             decalreFLag++;
             if (line[i - 1] != ' ' || line[i + 1] != ' ')
             {
-                /*error: ilegal character before or after  =*/
+                /*manageError(NO_LINE, ILLEGAL_CHARACTER , NO_TOKEN);*/
                 return FALSE;
             }
             if (decalreFLag == 2)
             {
-                /*error: cannt declare more than once in a line :*/
+                /*manageError(NO_LINE, COULD_NOT_DECALRE_TWICE , NO_TOKEN);*/
                 return FALSE;
             }
             allowedCommaFlag = FALSE;
@@ -347,7 +350,7 @@ int isLegalSyntax(char *line)
         {
             if (isdigit(line[i + 1]) == FALSE)
             {
-                /*error: ilegal character after math operand*/
+                /*manageError(NO_LINE, ILLEGAL_CHARACTER_AFTER , NO_TOKEN);*/
                 return FALSE;
             }
             allowedCommaFlag = TRUE;
@@ -356,7 +359,7 @@ int isLegalSyntax(char *line)
         {
             if (isalnum(line[i + 1]) == FALSE && line[i + 1] != '-' && line[i + 1] != '+')
             {
-                /*error: illegal character after #*/
+                /*manageError(NO_LINE, ILLEGAL_CHARACTER_AFTER , NO_TOKEN);*/
                 return FALSE;
             }
             allowedCommaFlag = TRUE;
@@ -366,7 +369,7 @@ int isLegalSyntax(char *line)
             i++;
             if (isalpha(line[i]) == FALSE)
             {
-                /*error: illegal character after .*/
+                /*manageError(NO_LINE, ILLEGAL_CHARACTER_AFTER , NO_TOKEN);*/
                 return FALSE;
             }
             i++;
@@ -376,7 +379,7 @@ int isLegalSyntax(char *line)
             }
             if (isspace(line[i]) == FALSE && line[i] != '\0')
             {
-                /*error: missing whitespace after .operation */
+                /*manageError(NO_LINE, ILLEGAL_CHARACTER_AFTER , NO_TOKEN);*/
                 return FALSE;
             }
             allowedCommaFlag = FALSE;
@@ -386,7 +389,7 @@ int isLegalSyntax(char *line)
         {
             if (allowedCommaFlag == FALSE)
             {
-                /*error:ilegal , placement*/
+                /*manageError(NO_LINE, ILLEGAL_CONSECUTIVE , NO_TOKEN);*/
                 return FALSE;
             }
             allowedCommaFlag = FALSE;
@@ -395,7 +398,7 @@ int isLegalSyntax(char *line)
         {
             if (isalnum(line[i + 1]) == FALSE || isalnum(line[i - 1]) == FALSE)
             {
-                /*error:ilegal character*/
+                /*manageError(NO_LINE, ILLEGAL_CHARACTER , NO_TOKEN);*/
                 return FALSE;
             }
         }
@@ -455,10 +458,12 @@ int isString(char *token)
 int isInteger(char *token)
 {
     int i = 0;
-    if(token[i]!='-'&& token[i]!='+' && isdigit(token[i]) == FALSE){
+    if (token[i] != '-' && token[i] != '+' && isdigit(token[i]) == FALSE)
+    {
         return FALSE;
     }
-    if(token[i]!='-'|| token[i]!='+'){
+    if (token[i] != '-' || token[i] != '+')
+    {
         i++;
     }
     while (token[i] != '\0')
@@ -543,7 +548,7 @@ int isRegister(char *token)
     int charValue;
     if (token[0] == 'r' && isdigit(token[1]) != FALSE && token[2] == '\0')
     {
-        charValue = token[1]-'0';
+        charValue = token[1] - '0';
         if (0 <= charValue && charValue <= 7)
         {
             return charValue;

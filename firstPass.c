@@ -4,23 +4,26 @@
 #include "opcode.h"
 #include "dataStructs.h"
 #include <string.h>
+#include "errors.h"
 void firstPass(MemoryManager *MM)
 {
     FILE *amFile;
     LinkedList *tokenizedLine;
-    
+
     Node *token;
     char *lineBuffer;
     amFile = openFile(getFT(MM->am), "r");
     if (amFile == NULL)
     {
-        /*error*/
+        errorCouldNotOpenFile(getFT(MM->am)->name);
     }
+    MM->currentLine = 0;
     lineBuffer = getLine(amFile);
     while (lineBuffer != NULL) /*2*/
     {
-        printf("%s\n",lineBuffer);
-        if (strcmp(lineBuffer, "\n")!=0 && lineBuffer[0]!=';')
+        MM->currentLine++;
+        printf("%s\n", lineBuffer);
+        if (strcmp(lineBuffer, "\n") != 0 && lineBuffer[0] != ';')
         {
             if (isLegalSyntax(lineBuffer) == TRUE)
             {
@@ -56,7 +59,8 @@ void firstPass(MemoryManager *MM)
                             if (isExtern(getStr(token)) == TRUE)
                             {
                                 insertExtern(tokenizedLine, MM);
-                            }
+                            }else
+                            {
                             if (isEntry(getStr(token)) == FALSE)
                             {
                                 if (isOpCode(getStr(token)) >= 0)
@@ -65,8 +69,9 @@ void firstPass(MemoryManager *MM)
                                 }
                                 else
                                 {
-                                    /*error: no opcode*/
+                                    errorMissingWord(MM->currentLine, getFT(MM->as)->name, "legal operation");
                                 }
+                            }
                             }
                         }
                     }
@@ -79,19 +84,14 @@ void firstPass(MemoryManager *MM)
             free(lineBuffer);
         }
         lineBuffer = getLine(amFile);
-        if (MM->errorFlag == TRUE) /*16*/
-        {
-            /*error*/
-        }
     }
     if (MM->errorFlag == TRUE) /*16*/
     {
 
-        /*error*/
+        return;
     }
     else
     {
         advanceData(MM); /*17*/
-        printAll(MM);
     }
 }

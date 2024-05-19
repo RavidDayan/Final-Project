@@ -7,19 +7,61 @@
 #include "parser.h"
 #include "opcode.h"
 #include "binary.h"
+#include "errors.h"
 
+/*@@@ Node functions @@@*/
+Node *newNode(void *data)
+{
+    Node *newNode = (Node *)malloc(sizeof(Node));
+    if (newNode == NULL)
+    {
+        errorCouldNotAllocateMemory();
+    }
+    newNode->data = data;
+    newNode->next = NULL;
+    return newNode;
+}
+Node *getNext(Node *node)
+{
+    return node->next;
+}
+char *getStr(Node *node)
+{
+    return (char *)node->data;
+}
+int getInt(Node *node)
+{
+    int *value = (int *)node->data;
+    return *value;
+}
+MemoryLine *getML(Node *node)
+{
+    return (MemoryLine *)(node->data);
+}
+FileTracker *getFT(Node *node)
+{
+    return (FileTracker *)(node->data);
+}
+Mcro *getMcr(Node *node)
+{
+    return (Mcro *)node->data;
+}
+Symbol *getSymbol(Node *node)
+{
+    return (Symbol *)node->data;
+}
 /*@@@ Symbol functions @@@*/
 Symbol *newSymbol(char *name)
 {
     Symbol *newSymbol = (Symbol *)malloc(sizeof(Symbol));
     if (newSymbol == NULL)
     {
-        /*error*/
+        errorCouldNotAllocateMemory();
     }
     newSymbol->name = (char *)malloc(sizeof(char) * (sizeof(name) + 1));
     if (newSymbol->name == NULL)
     {
-        /*error*/
+        errorCouldNotAllocateMemory();
     }
     strcpy(newSymbol->name, name);
     newSymbol->property = UNDEFINED;
@@ -34,7 +76,7 @@ Symbol *symbolExists(char *newSymbol, MemoryManager *MM)
     while (symbolNode != NULL)
     {
         symbol = getSymbol(symbolNode);
-        symbolName = getSymbolFromDecleration(symbol->name);
+        symbolName = getSymbolFromDecleration(symbol->name); /*get only the string before : or []*/
         if (strcmp(newSymbol, symbolName) == 0)
         {
             {
@@ -52,25 +94,25 @@ void insertMdefine(LinkedList *line, MemoryManager *MM)
     Node *token = line->head, *symbol = MM->symbol;
     Symbol *newMdefine;
     char *symbolName;
-    int succesfullConverted = FALSE, number;
+    int succesfullConverted = FALSE, number = UNDEFINED;
     if (line->size != MDEFINE_SIZE)
     {
-        /*error:too many args*/
+        errorIlegalWordCount(MM->currentLine, getFT(MM->as)->name, getStr(token));
     }
     else
     {
         token = getNext(token); /*symbol name*/
         symbolName = getStr(token);
-        if (isalpha(getStr(token)[0]))
+        if (isalpha(getStr(token)[0])) /*check that symbol starts with a letter*/
         {
-            if (symbolExists(symbolName, MM) == NULL)
+            if (symbolExists(symbolName, MM) == NULL) /*check that symbol does not exist*/
             {
-                token = getNext(token); /*operand =*/
+                token = getNext(token); /*operand '='*/
                 if (strcmp(getStr(token), "=") == 0)
                 {
                     token = getNext(token); /*number*/
                     number = stringToInt(getStr(token), &succesfullConverted);
-                    if (succesfullConverted == TRUE)
+                    if (succesfullConverted == TRUE) /*check for legal integer*/
                     {
                         newMdefine = newSymbol(symbolName);
                         newMdefine->property = MDEFINE;
@@ -80,22 +122,25 @@ void insertMdefine(LinkedList *line, MemoryManager *MM)
                     }
                     else
                     {
-                        /*error:ilegal number*/
+                        errorIlegalInteger(MM->currentLine, getFT(MM->as)->name, getStr(token));
                     }
                 }
                 else
                 {
-                    /*error:not an equal operand*/
+                    errorMissingWord(MM->currentLine, getFT(MM->as)->name, "=");
+                    return;
                 }
             }
             else
             {
-                /*error:symbol exists*/
+                errorDuplicateSymbol(MM->currentLine, getFT(MM->as)->name, symbolName);
+                return;
             }
         }
         else
         {
-            /*error:not a symbol*/
+            errorIlegalLabel(MM->currentLine, getFT(MM->as)->name, getStr(token));
+            return;
         }
     }
 }
@@ -103,15 +148,15 @@ void insertExtern(LinkedList *line, MemoryManager *MM)
 {
     Node *token = line->head;
     Symbol *symbol;
-    if (line->size != 2)
+    if (line->size != 2) /*extern should have only 2 words extern label*/
     {
-        /*error:opernads diffrent than needed for extern*/
+        errorIlegalWordCount(MM->currentLine, getFT(MM->as)->name, "extern");
     }
     token = getNext(token);
     symbol = symbolExists(getStr(token), MM);
     if (symbol != NULL)
     {
-        /*error:symbol exitss*/
+        errorDuplicateSymbol(MM->currentLine, getFT(MM->as)->name, getStr(token));
     }
     else
     {
@@ -127,7 +172,8 @@ void insertEntry(LinkedList *line, MemoryManager *MM)
     Symbol *symbol;
     if (line->size != 2)
     {
-        /*error:opernads diffrent than needed for extern*/
+        errorIlegalWordCount(MM->currentLine, getFT(MM->as)->name, "entry");
+        return;
     }
     else
     {
@@ -141,12 +187,14 @@ void insertEntry(LinkedList *line, MemoryManager *MM)
             }
             else
             {
-                /*error:cannot make extern symbol entry*/
+                errorCouldNotSetEntry(MM->currentLine, getFT(MM->as)->name, getStr(token));
+                return;
             }
         }
         else
         {
-            /*error:no symbol exitss*/
+            errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, getStr(token));
+            return;
         }
     }
 }
@@ -177,7 +225,10 @@ int GetArrayData(char *token, MemoryManager *MM)
         i++;
     }
     symbol = (char *)malloc(sizeof(char) * (counter + 1));
-    /*error:malloc*/
+    if (symbol == NULL)
+    {
+        errorCouldNotAllocateMemory();
+    }
     counter = 0;
     i = 0;
     while (token[i] != '\0')
@@ -206,8 +257,7 @@ int GetArrayData(char *token, MemoryManager *MM)
         free(symbol);
         if (value == NULL)
         {
-            /*error:no symbol found*/
-            return UNDEFINED;
+            /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
         }
         else
         {
@@ -224,7 +274,7 @@ int GetArrayData(char *token, MemoryManager *MM)
         }
         else
         {
-            /*error:not an integer*/
+            /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
         }
     }
     return UNDEFINED;
@@ -250,7 +300,10 @@ char *GetArrayDataSymbol(char *token, MemoryManager *MM)
         i++;
     }
     symbol = (char *)malloc(sizeof(char) * (counter + 1));
-    /*error:malloc*/
+    if (symbol == NULL)
+    {
+            errorCouldNotAllocateMemory();
+    }
     counter = 0;
     i = 0;
     while (token[i] != '\0')
@@ -284,7 +337,10 @@ char *getArraySymbol(char *token)
         i++;
     }
     symbol = (char *)malloc(sizeof(char) * (i + 1));
-    /*error:malloc*/
+    if (symbol == NULL)
+    {   
+            errorCouldNotAllocateMemory();   
+    }
     i = 0;
     while (token[i] != '[')
     {
@@ -296,9 +352,13 @@ char *getArraySymbol(char *token)
 }
 char *getSymbolFromDecleration(char *decleration)
 {
-    char *symbol = (char *)malloc(sizeof(char));
     int i = 0;
-    while (isalnum(decleration[i])!=0)
+    char *symbol = (char *)malloc(sizeof(char));
+    if (symbol == NULL)
+    { 
+            errorCouldNotAllocateMemory();  
+    }
+    while (isalnum(decleration[i]) != 0)
     {
         symbol[i] = decleration[i];
         i++;
@@ -363,7 +423,7 @@ void insertData(LinkedList *line, MemoryManager *MM)
                     }
                     else
                     {
-                        /*error:unidentifed symbol*/
+                        /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
                     }
                 }
             }
@@ -372,7 +432,7 @@ void insertData(LinkedList *line, MemoryManager *MM)
                 number = stringToInt(getStr(token), &succesfullConverted);
                 if (succesfullConverted == FALSE)
                 {
-                    /*error:ilegal integer*/
+                    /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
                 }
             }
             MM->dc = MM->dc + 1;
@@ -392,7 +452,7 @@ void insertData(LinkedList *line, MemoryManager *MM)
     }
     else /*print error if duplicate*/
     {
-        /*error: duplicate symbols*/
+        /*manageError(NO_LINE, DUPLICATE_SYMBOL, NO_TOKEN);*/
     }
 }
 void insertString(LinkedList *line, MemoryManager *MM)
@@ -417,7 +477,7 @@ void insertString(LinkedList *line, MemoryManager *MM)
         string = getStr(token);
         if (string[i] != '"')
         {
-            /*error:no string start*/
+            /*manageError(NO_LINE, NO_STRING_START_END, NO_TOKEN);*/
         }
         else
         {
@@ -445,7 +505,7 @@ void insertString(LinkedList *line, MemoryManager *MM)
     }
     else
     {
-        /*error: duplicate symbols*/
+        /*manageError(NO_LINE, DUPLICATE_SYMBOL, NO_TOKEN);*/
     }
 }
 void insertCode(LinkedList *line, MemoryManager *MM)
@@ -464,7 +524,7 @@ void insertCode(LinkedList *line, MemoryManager *MM)
         symbol = symbolExists(getStr(token), MM);
         if (symbol != NULL)
         {
-            /*error:duplicate symbol*/
+            /*manageError(NO_LINE, DUPLICATE_SYMBOL, NO_TOKEN);*/
         }
         else
         {
@@ -485,7 +545,7 @@ void insertCode(LinkedList *line, MemoryManager *MM)
         {
             tempML = newMemoryLine(MM->ic + STARTING_ADDRESS);
             tempML->SC = line->head;
-            tempML->BMC = setCode(0, opcode);  
+            tempML->BMC = setCode(0, opcode);
             firstMLline = newNode(tempML);
             if ((line->size) - (1 + symbolFlag) == 1) /*only 1 operand needed*/
             {
@@ -531,16 +591,16 @@ void insertCode(LinkedList *line, MemoryManager *MM)
                 tempML->BMC = setDes(tempML->BMC, des);
             }
             AddCode(MM, firstMLline);
-            MM->ic=MM->ic+1;
+            MM->ic = MM->ic + 1;
         }
         else
         {
-            /*error:missing operands*/
+            /*manageError(NO_LINE, COULD_NOT_MATCH_WORDS_COUNT, NO_TOKEN);*/
         }
     }
     else
     {
-        /*error:no opcode*/
+        /*manageError(NO_LINE, ILLEGAL_OPCODE, NO_TOKEN);*/
     }
 }
 /*void insertSymbol();*/
@@ -550,13 +610,12 @@ Mcro *newMcro(char *name)
     Mcro *newMcro = (Mcro *)malloc(sizeof(Mcro));
     if (newMcro == NULL)
     {
-        return NULL;
+        errorCouldNotAllocateMemory();
     }
     newMcro->name = (char *)malloc(strlen(name) + 1);
     if (newMcro->name == NULL)
     {
-        free(newMcro);
-        return NULL;
+        errorCouldNotAllocateMemory();
     }
     strcpy(newMcro->name, name);
     newMcro->data = NULL;
@@ -603,48 +662,6 @@ void advanceData(MemoryManager *MM)
         data = getNext(data);
     }
 }
-/*@@@ Node functions @@@*/
-Node *newNode(void *data)
-{
-    Node *newNode = (Node *)malloc(sizeof(Node));
-    if (newNode == NULL)
-    {
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(EXIT_FAILURE);
-    }
-    newNode->data = data;
-    newNode->next = NULL;
-    return newNode;
-}
-Node *getNext(Node *node)
-{
-    return node->next;
-}
-char *getStr(Node *node)
-{
-    return (char *)node->data;
-}
-int getInt(Node *node)
-{
-    int *value = (int *)node->data;
-    return *value;
-}
-MemoryLine *getML(Node *node)
-{
-    return (MemoryLine *)(node->data);
-}
-FileTracker *getFT(Node *node)
-{
-    return (FileTracker *)(node->data);
-}
-Mcro *getMcr(Node *node)
-{
-    return (Mcro *)node->data;
-}
-Symbol *getSymbol(Node *node)
-{
-    return (Symbol *)node->data;
-}
 
 /*@@@ Linked list functions @@@*/
 LinkedList *newLinkedList()
@@ -652,9 +669,7 @@ LinkedList *newLinkedList()
     LinkedList *newLinkedList = (LinkedList *)malloc(sizeof(LinkedList));
     if (newLinkedList == NULL)
     {
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(EXIT_FAILURE);
-        /*error*/
+        errorCouldNotAllocateMemory();
     }
     newLinkedList->head = NULL;
     newLinkedList->size = 0;
@@ -684,7 +699,7 @@ MemoryManager *newMemoryManager(char *name)
     MemoryManager *newMemoryManager = (MemoryManager *)malloc(sizeof(MemoryManager));
     if (newMemoryManager == NULL)
     {
-        /*error*/
+        errorCouldNotAllocateMemory();
     }
     newMemoryManager->code = NULL;
     newMemoryManager->data = NULL;
@@ -692,6 +707,7 @@ MemoryManager *newMemoryManager(char *name)
     newMemoryManager->symbol = NULL;
     newMemoryManager->ic = 0;
     newMemoryManager->dc = -1;
+    newMemoryManager->currentLine = 0;
     newMemoryManager->errorFlag = FALSE;
     intializeFiles(newMemoryManager, name);
     return newMemoryManager;
@@ -800,14 +816,14 @@ int getImidiateValue(char *token, MemoryManager *MM)
         symbol = symbolExists(symbolPointer, MM);
         if (symbol == NULL)
         {
-            /*error:symbal*/
+            /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
             return UNDEFINED;
         }
         else
         {
             if (symbol->property != MDEFINE)
             {
-                /*error:symbal*/
+                /*manageError(NO_LINE, NOT_EXISTS_SYMBOL, NO_TOKEN);*/
                 return UNDEFINED;
             }
             else
@@ -869,9 +885,9 @@ void printAll(MemoryManager *MM)
 FileTracker *newFileTracker(char *name)
 {
     FileTracker *newFile = (FileTracker *)malloc(sizeof(FileTracker));
-    if (newFile == NULL)
+    if(newFile==NULL)
     {
-        /*error*/
+        errorCouldNotAllocateMemory();
     }
     newFile->name = name;
     newFile->file = NULL;
@@ -885,16 +901,15 @@ FILE *openFile(FileTracker *fileTracker, char *type)
     {
         fclose(fileTracker->file);
     }
-        openFile = fopen(fileTracker->name, type);
-        if (openFile == NULL)
-        {
-            /*error*/
-            return NULL;
-        }
+    openFile = fopen(fileTracker->name, type);
+    if (openFile == NULL)
+    {
+        errorCouldNotOpenFile(fileTracker->name);
+    }
 
-        fileTracker->state = TRUE;
-        fileTracker->file = openFile;
-        return fileTracker->file;
+    fileTracker->state = TRUE;
+    fileTracker->file = openFile;
+    return fileTracker->file;
 }
 void CloseFile(FileTracker *fileTracker)
 {
@@ -946,7 +961,7 @@ MemoryLine *newMemoryLine(int address)
     MemoryLine *newML = (MemoryLine *)malloc(sizeof(MemoryLine));
     if (newML == NULL)
     {
-        /*ERROR*/
+        /*manageError(NO_LINE, COULD_NOT_ALLOCATE_MEMORY, NO_TOKEN);*/
     }
     newML->DA = address;
     newML->BMC = 0;
@@ -963,18 +978,12 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
     if (addressing == 0)
     {
         value = getImidiateValue(getStr(token), MM);
-        if (value == UNDEFINED)
-        {
-            /*error:undefined imidiate value*/
-        }
-        else
-        {
-            MM->ic = MM->ic + 1;
-            tempML = newMemoryLine(MM->ic + STARTING_ADDRESS);
-            tempML->SC = token;
-            tempML->BMC = setValue(0, value);
-            returnedNode = newNode(tempML);
-        }
+
+        MM->ic = MM->ic + 1;
+        tempML = newMemoryLine(MM->ic + STARTING_ADDRESS);
+        tempML->SC = token;
+        tempML->BMC = setValue(0, value);
+        returnedNode = newNode(tempML);
     }
     if (addressing == 1)
     {
@@ -1015,18 +1024,11 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
             returnedNode = newNode(tempML);
         }
         value = GetArrayData(getStr(token), MM);
-        if (value == UNDEFINED)
-        {
-            /*error:undefined imidiate value*/
-        }
-        else
-        {
-            MM->ic = MM->ic + 1;
-            tempML = newMemoryLine(MM->ic + STARTING_ADDRESS);
-            tempML->SC = newNode(GetArrayDataSymbol(getStr(token), MM));
-            tempML->BMC = setValue(0, value);
-            returnedNode->next = newNode(tempML);
-        }
+        MM->ic = MM->ic + 1;
+        tempML = newMemoryLine(MM->ic + STARTING_ADDRESS);
+        tempML->SC = newNode(GetArrayDataSymbol(getStr(token), MM));
+        tempML->BMC = setValue(0, value);
+        returnedNode->next = newNode(tempML);
     }
     if (addressing == 3)
     {

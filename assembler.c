@@ -31,7 +31,19 @@ void assemble(char *fileName)
     MemoryManager *memoryManager;
     memoryManager = newMemoryManager(fileName);
     preProccess(memoryManager);
+    if (memoryManager->errorFlag == TRUE)
+    {
+        return;
+    }
     firstPass(memoryManager);
+    if (memoryManager->errorFlag == TRUE)
+    {
+        return;
+    }
     secondPass(memoryManager);
+    if (memoryManager->errorFlag == TRUE)
+    {
+        return;
+    }
     buildFiles(memoryManager);
 }

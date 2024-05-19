@@ -43,7 +43,7 @@ void printBinary(int num)
 }
 void binToQuantPrint(int binary, FILE *file)
 {
-    char *quant[7];
+    char quant[7];
     int i, j = 0;
     int quad;
     for (i = 12; i >= 0; i = i - 2)

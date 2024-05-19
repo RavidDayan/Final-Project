@@ -3,18 +3,19 @@
 #include "stdio.h"
 #include "string.h"
 #include "util.h"
+#include "errors.h"
 void buildFiles(MemoryManager *MM)
 {
     FILE *ob = NULL, *ext = NULL, *ent = NULL;
     int counter = 0, openFlag = FALSE;
-    Symbol *symbol, *codes;
+    Symbol *symbol;
     Node *data;
     Node *symbols;
     MemoryLine *ML;
     ob = openFile(getFT(MM->ob), "w");
     if (ob == NULL)
     {
-        /*error*/
+        errorCouldNotOpenFile(getFT(MM->ob)->name);
     }
     data = MM->code;
     while (data != NULL)

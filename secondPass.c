@@ -5,6 +5,7 @@
 #include "dataStructs.h"
 #include "parser.h"
 #include "binary.h"
+#include "errors.h"
 void secondPass(MemoryManager *MM)
 {
     FILE *amFile;
@@ -16,7 +17,7 @@ void secondPass(MemoryManager *MM)
     amFile = openFile(getFT(MM->am), "r");
     if (amFile == NULL)
     {
-        /*error*/
+        errorCouldNotOpenFile(getFT(MM->am)->name);
     }
     lineBuffer = getLine(amFile);
     while (lineBuffer != NULL) /*2*/
@@ -52,8 +53,7 @@ void secondPass(MemoryManager *MM)
             }
             else
             {
-                printf("%s", getStr(ML->SC));
-                /*error:undecalred symbol*/
+                errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, getStr(ML->SC));
                 MM->errorFlag = TRUE;
             }
         }
