@@ -1,9 +1,9 @@
-#include "util.h"
+#include "../headers/util.h"
 #include <stdlib.h>
 #include <string.h>
-#include "errors.h"
-#include "MemoryCollector.h"
-#include "dataStructs.h"
+#include "../headers/errors.h"
+#include "../headers/MemoryCollector.h"
+#include "../headers/dataStructs.h"
 char *addFileEnding(char *fileName, int type)
 {
     int endingFlag = FALSE;

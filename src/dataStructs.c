@@ -1,14 +1,14 @@
-#include "dataStructs.h"
+#include "../headers/dataStructs.h"
 #include "stdlib.h"
 #include "ctype.h"
 #include "string.h"
 #include "stdio.h"
-#include "util.h"
-#include "parser.h"
-#include "opcode.h"
-#include "binary.h"
-#include "errors.h"
-#include "MemoryCollector.h"
+#include "../headers/util.h"
+#include "../headers/parser.h"
+#include "../headers/opcode.h"
+#include "../headers/binary.h"
+#include "../headers/errors.h"
+#include "../headers/MemoryCollector.h"
 /*each newtype function saved the memory pointer to the apropriate collector*/
 /*@@@ Node functions @@@*/
 Node *newNode(void *data)

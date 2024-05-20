@@ -1,12 +1,12 @@
-#include "parser.h"
-#include "dataStructs.h"
+#include "../headers/parser.h"
+#include "../headers/dataStructs.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
-#include "util.h"
-#include "errors.h"
-#include "MemoryCollector.h"
+#include "../headers/util.h"
+#include "../headers/errors.h"
+#include "../headers/MemoryCollector.h"
 
 char *removeWhiteSpace(FILE *input)
 {

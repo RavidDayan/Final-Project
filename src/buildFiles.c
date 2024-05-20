@@ -1,9 +1,9 @@
-#include "dataStructs.h"
-#include "binary.h"
+#include "../headers/dataStructs.h"
+#include "../headers/binary.h"
 #include "stdio.h"
 #include "string.h"
-#include "util.h"
-#include "errors.h"
+#include "../headers/util.h"
+#include "../headers/errors.h"
 void buildFiles(MemoryManager *MM)
 {
     FILE *ob = NULL, *ext = NULL, *ent = NULL;

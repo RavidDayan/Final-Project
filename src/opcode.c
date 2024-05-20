@@ -1,8 +1,8 @@
 #include <string.h>
-#include "opcode.h"
-#include "util.h"
-#include "dataStructs.h"
-#include "parser.h"
+#include "../headers/opcode.h"
+#include "../headers/util.h"
+#include "../headers/dataStructs.h"
+#include "../headers/parser.h"
 
 /*in src,and des addressing if it supports its 1 else 0*/
 opCode codes[16] = {

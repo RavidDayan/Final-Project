@@ -1,7 +1,7 @@
-#include "errors.h"
+#include "../headers/errors.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "MemoryCollector.h"
+#include "../headers/MemoryCollector.h"
 
 void exitProgram()
 {

@@ -1,6 +1,6 @@
 #include <stdlib.h>
-#include "MemoryCollector.h"
-#include "dataStructs.h"
+#include "../headers/MemoryCollector.h"
+#include "../headers/dataStructs.h"
 #include "stdio.h"
 
 MemoryManager *memoryStorage = NULL;

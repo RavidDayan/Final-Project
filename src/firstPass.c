@@ -1,11 +1,11 @@
 #include <stdio.h>
-#include "parser.h"
-#include "util.h"
-#include "opcode.h"
-#include "dataStructs.h"
+#include "../headers/parser.h"
+#include "../headers/util.h"
+#include "../headers/opcode.h"
+#include "../headers/dataStructs.h"
 #include <string.h>
-#include "errors.h"
-#include "MemoryCollector.h"
+#include "../headers/errors.h"
+#include "../headers/MemoryCollector.h"
 void firstPass(MemoryManager *MM)
 {
     FILE *amFile;

@@ -1,12 +1,12 @@
 #include <stdlib.h>
 #include "stdio.h"
-#include "secondPass.h"
-#include "util.h"
-#include "dataStructs.h"
-#include "parser.h"
-#include "binary.h"
-#include "errors.h"
-#include "MemoryCollector.h"
+#include "../headers/secondPass.h"
+#include "../headers/util.h"
+#include "../headers/dataStructs.h"
+#include "../headers/parser.h"
+#include "../headers/binary.h"
+#include "../headers/errors.h"
+#include "../headers/MemoryCollector.h"
 void secondPass(MemoryManager *MM)
 {
     FILE *amFile;

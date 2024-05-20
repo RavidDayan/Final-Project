@@ -3,14 +3,14 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include "stdio.h"
-#include "util.h"
-#include "dataStructs.h"
-#include "preProccess.h"
-#include "firstPass.h"
-#include "secondPass.h"
-#include "buildFiles.h"
-#include "MemoryCollector.h"
-#include "opcode.h"
+#include "../headers/util.h"
+#include "../headers/dataStructs.h"
+#include "../headers/preProccess.h"
+#include "../headers/firstPass.h"
+#include "../headers/secondPass.h"
+#include "../headers/buildFiles.h"
+#include "../headers/MemoryCollector.h"
+#include "../headers/opcode.h"
 
 void assemble(char *fileName);
 int main(int argc, char *argv[])
