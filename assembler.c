@@ -10,6 +10,7 @@
 #include "secondPass.h"
 #include "buildFiles.h"
 #include "MemoryCollector.h"
+#include "opcode.h"
 
 void assemble(char *fileName);
 int main(int argc, char *argv[])

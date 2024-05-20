@@ -169,12 +169,18 @@ int GetArrayData(char *token, MemoryManager *MM)
         i = stringToInt(symbol, &success);
         if (success == TRUE)
         {
-            return i;
+            if (legalInteger(i) == TRUE)
+            {
+                return i;
+            }
+            else
+            {
+                errorIlegalInteger(MM->currentLine, getFT(MM->as)->name, symbol);
+            }
         }
         else
         {
             errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, symbol);
-
             MM->errorFlag = TRUE;
         }
     }
@@ -305,29 +311,47 @@ void insertMdefine(LinkedList *line, MemoryManager *MM)
         {
             if (symbolExists(symbolName, MM) == NULL) /*check that symbol does not exist*/
             {
-                token = getNext(token); /*operand '='*/
-                if (strcmp(getStr(token), "=") == 0)
+                if (mcroExists(symbolName, MM) == NULL) /*check that symbol is not a macro name*/
                 {
-                    token = getNext(token); /*number*/
-                    number = stringToInt(getStr(token), &succesfullConverted);
-                    if (succesfullConverted == TRUE) /*check for legal integer*/
+                    if (isSavedWord(symbolName) == FALSE)
                     {
-                        newMdefine = newSymbol(symbolName);
-                        newMdefine->property = MDEFINE;
-                        newMdefine->value = number;
-                        symbol = newNode(newMdefine);
-                        AddSymbol(MM, symbol);
+                        token = getNext(token); /*operand '='*/
+                        if (strcmp(getStr(token), "=") == 0)
+                        {
+                            token = getNext(token); /*number*/
+                            number = stringToInt(getStr(token), &succesfullConverted);
+                            if (succesfullConverted == TRUE && legalInteger(number) == TRUE) /*check for legal integer*/
+                            {
+                                newMdefine = newSymbol(symbolName);
+                                newMdefine->property = MDEFINE;
+                                newMdefine->value = number;
+                                symbol = newNode(newMdefine);
+                                AddSymbol(MM, symbol);
+                            }
+                            else
+                            {
+                                errorIlegalInteger(MM->currentLine, getFT(MM->as)->name, getStr(token));
+                                MM->errorFlag = TRUE;
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            errorMissingWord(MM->currentLine, getFT(MM->as)->name, "=");
+                            MM->errorFlag = TRUE;
+                            return;
+                        }
                     }
                     else
                     {
-                        errorIlegalInteger(MM->currentLine, getFT(MM->as)->name, getStr(token));
+                        errorIsSavedWord(MM->currentLine, getFT(MM->as)->name, symbolName);
                         MM->errorFlag = TRUE;
                         return;
                     }
                 }
                 else
                 {
-                    errorMissingWord(MM->currentLine, getFT(MM->as)->name, "=");
+                    errorDuplicateMacro(MM->currentLine, getFT(MM->as)->name, symbolName);
                     MM->errorFlag = TRUE;
                     return;
                 }
@@ -351,7 +375,7 @@ void insertExtern(LinkedList *line, MemoryManager *MM)
 {
     Node *token = line->head;
     Symbol *symbol;
-    if (line->size != 2) /*extern should have only 2 words extern label*/
+    if (line->size != 2) /*extern should have only 2 words .extern label*/
     {
         errorIlegalWordCount(MM->currentLine, getFT(MM->as)->name, "extern");
         MM->errorFlag = TRUE;
@@ -359,7 +383,7 @@ void insertExtern(LinkedList *line, MemoryManager *MM)
     }
     token = getNext(token);
     symbol = symbolExists(getStr(token), MM);
-    if (symbol != NULL)
+    if (symbol != NULL) /*check if symbol with same name exists*/
     {
         errorDuplicateSymbol(MM->currentLine, getFT(MM->as)->name, getStr(token));
         MM->errorFlag = TRUE;
@@ -367,17 +391,35 @@ void insertExtern(LinkedList *line, MemoryManager *MM)
     }
     else
     {
-        symbol = newSymbol(getStr(token));
-        symbol->property = EXTERN;
-        symbol->value = 0;
-        AddSymbol(MM, newNode(symbol));
+        if (mcroExists(getStr(token), MM) == NULL) /*check that symbol is not a macro name*/
+        {
+            if (isSavedWord(getStr(token)) == FALSE)
+            {
+                symbol = newSymbol(getStr(token));
+                symbol->property = EXTERN;
+                symbol->value = 0;
+                AddSymbol(MM, newNode(symbol));
+            }
+            else
+            {
+                errorIsSavedWord(MM->currentLine, getFT(MM->as)->name, getStr(token));
+                MM->errorFlag = TRUE;
+                return;
+            }
+        }
+        else
+        {
+            errorDuplicateMacro(MM->currentLine, getFT(MM->as)->name, getStr(token));
+            MM->errorFlag = TRUE;
+            return;
+        }
     }
 }
 void insertEntry(LinkedList *line, MemoryManager *MM)
 {
     Node *token = line->head;
     Symbol *symbol;
-    if (line->size != 2)
+    if (line->size != 2) /*entry should have only 2 words .extern label*/
     {
         errorIlegalWordCount(MM->currentLine, getFT(MM->as)->name, "entry");
         MM->errorFlag = TRUE;
@@ -386,7 +428,7 @@ void insertEntry(LinkedList *line, MemoryManager *MM)
     else
     {
         token = getNext(token);
-        symbol = symbolExists(getStr(token), MM);
+        symbol = symbolExists(getStr(token), MM); /*look for symbol in symbol tables*/
         if (symbol != NULL)
         {
             if (symbol->property != EXTERN)
@@ -414,98 +456,132 @@ void insertData(LinkedList *line, MemoryManager *MM)
     Node *token = line->head;
     Symbol *symbol;
     MemoryLine *ML;
-    char *arraySymbol;
+    char *arraySymbol, *symbolName;
     int number;
     int succesfullConverted = FALSE;
-    int firstDigit = TRUE;
-    if (symbolExists(getStr(token), MM) == NULL) /*check that symbol is duplicate*/
+    int firstDigit = TRUE; /*incicates the source code has been entered to the first digit*/
+    symbolName = getSymbolFromDecleration(getStr(token));
+    if (symbolExists(symbolName, MM) == NULL) /*check that symbol is duplicate*/
     {
-        /*insert new symbol*/
-        symbol = newSymbol(getSymbolFromDecleration(getStr(token)));
-        symbol->property = DATA;
-        symbol->value = MM->dc;
-        AddSymbol(MM, newNode(symbol));
-        /*skip .data*/
-        token = getNext(token);
-        token = getNext(token);
-        /*insert data*/
-        while (token != NULL)
-        { /*check if data is a number or symbol*/
-            if (isInteger(getStr(token)) == FALSE)
+        if (mcroExists(symbolName, MM) == NULL) /*check that symbol is not a macro name*/
+        {
+            if (isSavedWord(symbolName) == FALSE)
             {
-                /*check if symbol is defined or array*/
-                if ((symbol = symbolExists(getStr(token), MM)) != NULL) /*is it a known symbol?*/
-                {
-                    number = symbol->value;
-                    MM->dc = MM->dc + 1;
-                    ML = newMemoryLine(MM->dc);
-                    ML->BMC = number;
-                }
-                else
-                {
-                    if (isArray(getStr(token)) == TRUE) /*is it an array?*/
+                /*insert new symbol*/
+                symbol = newSymbol(getSymbolFromDecleration(getStr(token)));
+                symbol->property = DATA;
+                symbol->value = MM->dc;
+                AddSymbol(MM, newNode(symbol));
+                /*skip .data*/
+                token = getNext(token);
+                token = getNext(token);
+                /*insert data*/
+                while (token != NULL)
+                { /*check if data is a number or symbol*/
+                    if (isInteger(getStr(token)) == FALSE)
                     {
-                        arraySymbol = getArraySymbol(getStr(token));
-                        symbol = symbolExists(arraySymbol, MM);
-                        if (symbol != NULL)
+                        /*check if symbol is defined or array*/
+                        if ((symbol = symbolExists(getStr(token), MM)) != NULL) /*is it a known symbol?*/
                         {
-                            MM->dc = MM->dc + 1;
-                            ML = newMemoryLine(MM->dc);
-                            ML->BMC = symbol->value;
+                            if (symbol->property == MDEFINE || symbol->property == EXTERN) /*check if its mdefined or extern*/
+                            {
+                                number = symbol->value;
+                                MM->dc = MM->dc + 1;
+                                ML = newMemoryLine(MM->dc);
+                                ML->BMC = number;
+                            }
+                            else
+                            {
+                                errorIlegalWordPlace(MM->currentLine, getFT(MM->as)->name, "data", "When entering", "not mdefine or extern", "mdefine or exter");
+                                MM->errorFlag = TRUE;
+                                return;
+                            }
                         }
                         else
                         {
-                            MM->dc = MM->dc + 1;
-                            ML = newMemoryLine(MM->dc);
-                            ML->BMC = UNDEFINED;
-                            ML->SC = newNode(arraySymbol);
+                            if (isArray(getStr(token)) == TRUE) /*is it an array?*/
+                            {
+                                arraySymbol = getArraySymbol(getStr(token));
+                                symbol = symbolExists(arraySymbol, MM);
+                                if (symbol != NULL) /*if array symbol already declared use the address else unspecficy address*/
+                                {
+                                    MM->dc = MM->dc + 1;
+                                    ML = newMemoryLine(MM->dc);
+                                    ML->BMC = symbol->value;
+                                }
+                                else
+                                {
+                                    MM->dc = MM->dc + 1;
+                                    ML = newMemoryLine(MM->dc);
+                                    ML->BMC = UNDEFINED;
+                                    ML->SC = newNode(arraySymbol);
+                                }
+                                number = GetArrayData(getStr(token), MM); /*get the value of the adress inside the array*/
+                                if (number == UNDEFINED)
+                                {
+                                    MM->errorFlag = TRUE;
+                                    return;
+                                }
+                                else
+                                {
+                                    MM->dc = MM->dc + 1;
+                                    ML = newMemoryLine(MM->dc);
+                                    ML->BMC = number;
+                                    ML->SC = newNode(arraySymbol);
+                                }
+                            }
+                            else
+                            {
+                                errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, getStr(token));
+                                MM->errorFlag = TRUE;
+                                return;
+                            }
                         }
-                        number = GetArrayData(getStr(token), MM);
-                        if (number == UNDEFINED)
+                    }
+                    else /*not a symbol , check if its is a digit*/
+                    {
+                        number = stringToInt(getStr(token), &succesfullConverted);
+                        if (succesfullConverted == FALSE)
                         {
+                            errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, getStr(token));
                             MM->errorFlag = TRUE;
                             return;
                         }
-                        else
+                        if (legalInteger(number) == FALSE)
                         {
-                            MM->dc = MM->dc + 1;
-                            ML = newMemoryLine(MM->dc);
-                            ML->BMC = number;
-                            ML->SC = newNode(arraySymbol);
+                            errorIlegalInteger(MM->currentLine, getFT(MM->as)->name, getStr(token));
+                            MM->errorFlag = TRUE;
+                            return;
                         }
+                        MM->dc = MM->dc + 1;
+                        ML = newMemoryLine(MM->dc);
+                        ML->BMC = number;
+                    }
+                    if (firstDigit) /*is it the first line of .data?*/
+                    {
+                        ML->SC = line->head;
+                        firstDigit = FALSE;
                     }
                     else
                     {
-                        errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, getStr(token));
-                        MM->errorFlag = TRUE;
-                        return;
+                        ML->SC = NULL;
                     }
+                    AddData(MM, newNode(ML));
+                    token = getNext(token);
                 }
             }
             else
             {
-                number = stringToInt(getStr(token), &succesfullConverted);
-                if (succesfullConverted == FALSE)
-                {
-                    errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, getStr(token));
-                    MM->errorFlag = TRUE;
-                    return;
-                }
-                MM->dc = MM->dc + 1;
-                ML = newMemoryLine(MM->dc);
-                ML->BMC = number;
+                errorIsSavedWord(MM->currentLine, getFT(MM->as)->name, symbolName);
+                MM->errorFlag = TRUE;
+                return;
             }
-            if (firstDigit) /*is it the first line of .data?*/
-            {
-                ML->SC = line->head;
-                firstDigit = FALSE;
-            }
-            else
-            {
-                ML->SC = NULL;
-            }
-            AddData(MM, newNode(ML));
-            token = getNext(token);
+        }
+        else
+        {
+            errorDuplicateMacro(MM->currentLine, getFT(MM->as)->name, symbolName);
+            MM->errorFlag = TRUE;
+            return;
         }
     }
     else /*print error if duplicate*/
@@ -521,48 +597,67 @@ void insertString(LinkedList *line, MemoryManager *MM)
     Node *token = line->head;
     Symbol *symbol;
     MemoryLine *ML;
-    char *string;
+    char *string, *symbolName;
     int i = 0;
-    if (symbolExists(getStr(token), MM) == NULL) /*check that symbol isent duplicate*/
+    symbolName = getSymbolFromDecleration(getStr(token));
+    if (symbolExists(symbolName, MM) == NULL) /*check that symbol isent duplicate*/
     {
-        /*insert new symbol*/
-        symbol = newSymbol(getSymbolFromDecleration(getStr(token)));
-        symbol->property = STRING;
-        symbol->value = MM->dc;
-        AddSymbol(MM, newNode(symbol));
-        /*skip .string*/
-        token = getNext(token);
-        token = getNext(token);
-        /*insert chars*/
-        string = getStr(token);
-        if (string[i] != '"')
+        if (mcroExists(symbolName, MM) == NULL) /*check that symbol is not a macro name*/
         {
-            errorMissingWord(MM->currentLine, getFT(MM->as)->name, "''");
-            MM->errorFlag = TRUE;
-            return;
-        }
-        else
-        {
-            for (i = 1; i < strlen(string) - 1; i++)
+            if (isSavedWord(symbolName) == FALSE)
             {
-                MM->dc = MM->dc + 1;
-                ML = newMemoryLine(MM->dc);
-                ML->BMC = string[i];
-                if (i == 0)
+                /*insert new symbol*/
+                symbol = newSymbol(getSymbolFromDecleration(getStr(token)));
+                symbol->property = STRING;
+                symbol->value = MM->dc;
+                AddSymbol(MM, newNode(symbol));
+                /*skip .string*/
+                token = getNext(token);
+                token = getNext(token);
+                /*insert chars*/
+                string = getStr(token);
+                if (string[i] != '"') /*first char should be "*/
                 {
-                    ML->SC = NULL;
+                    errorMissingWord(MM->currentLine, getFT(MM->as)->name, "''");
+                    MM->errorFlag = TRUE;
+                    return;
                 }
                 else
                 {
-                    ML->SC = NULL;
+                    for (i = 1; i < strlen(string) - 1; i++) /*get chars up to last  "*/
+                    {
+                        MM->dc = MM->dc + 1;
+                        ML = newMemoryLine(MM->dc);
+                        ML->BMC = string[i];
+                        if (i == 0)
+                        {
+                            ML->SC = NULL;
+                        }
+                        else
+                        {
+                            ML->SC = NULL;
+                        }
+                        AddData(MM, newNode(ML));
+                    }
+                    MM->dc = MM->dc + 1;
+                    ML = newMemoryLine(MM->dc);
+                    ML->BMC = 0;
+                    ML->SC = newNode("\0");
+                    AddData(MM, newNode(ML));
                 }
-                AddData(MM, newNode(ML));
             }
-            MM->dc = MM->dc + 1;
-            ML = newMemoryLine(MM->dc);
-            ML->BMC = 0;
-            ML->SC = newNode("\0");
-            AddData(MM, newNode(ML));
+            else
+            {
+                errorIsSavedWord(MM->currentLine, getFT(MM->as)->name, symbolName);
+                MM->errorFlag = TRUE;
+                return;
+            }
+        }
+        else
+        {
+            errorDuplicateMacro(MM->currentLine, getFT(MM->as)->name, symbolName);
+            MM->errorFlag = TRUE;
+            return;
         }
     }
     else
@@ -577,7 +672,7 @@ void insertCode(LinkedList *line, MemoryManager *MM)
     Node *token = line->head, *firstMLline = NULL, *srcNode = NULL, *desNode = NULL, *TempNode;
     Symbol *symbol;
     MemoryLine *tempML;
-    char *tempString;
+    char *tempString, *symbolName;
     int symbolFlag = 0;
     int opcode = UNDEFINED;
     int src = 0;
@@ -585,8 +680,9 @@ void insertCode(LinkedList *line, MemoryManager *MM)
     /*check if theres a symbol at the start*/
     if (isSymbol(getStr(token)))
     {
-        symbol = symbolExists(getSymbolFromDecleration(getStr(token)), MM);
-        if (symbol != NULL)
+        symbolName = getSymbolFromDecleration(getStr(token));
+        symbol = symbolExists(symbolName, MM);
+        if (symbol != NULL) /*check if symbol already exists*/
         {
             errorDuplicateSymbol(MM->currentLine, getFT(MM->as)->name, getStr(token));
             MM->errorFlag = TRUE;
@@ -594,13 +690,31 @@ void insertCode(LinkedList *line, MemoryManager *MM)
         }
         else
         {
-            symbolFlag = TRUE;
-            tempString = getSymbolFromDecleration(getStr(token));
-            symbol = newSymbol(tempString);
-            symbol->property = CODE;
-            symbol->value = MM->ic + STARTING_ADDRESS;
-            AddSymbol(MM, newNode(symbol));
-            token = getNext(token);
+            if (mcroExists(symbolName, MM) == NULL) /*check that symbol is not a macro name*/
+            {
+                if (isSavedWord(symbolName) == FALSE)
+                {
+                    symbolFlag = TRUE;
+                    tempString = getSymbolFromDecleration(getStr(token));
+                    symbol = newSymbol(tempString);
+                    symbol->property = CODE;
+                    symbol->value = MM->ic + STARTING_ADDRESS;
+                    AddSymbol(MM, newNode(symbol));
+                    token = getNext(token);
+                }
+                else
+                {
+                    errorIsSavedWord(MM->currentLine, getFT(MM->as)->name, symbolName);
+                    MM->errorFlag = TRUE;
+                    return;
+                }
+            }
+            else
+            {
+                errorDuplicateMacro(MM->currentLine, getFT(MM->as)->name, symbolName);
+                MM->errorFlag = TRUE;
+                return;
+            }
         }
     }
     opcode = isOpCode(getStr(token));
@@ -612,13 +726,22 @@ void insertCode(LinkedList *line, MemoryManager *MM)
             tempML->SC = line->head;
             tempML->BMC = setCode(0, opcode);
             firstMLline = newNode(tempML);
-            if ((line->size) - (1 + symbolFlag) == 1) /*only 1 operand needed*/
+            if ((line->size) - (1 + symbolFlag) == 1) /*1 operand needed*/
             {
                 token = getNext(token);
                 des = getAddressingCode(getStr(token));
-                srcNode = MLgetAddress(token, MM, des, FALSE);
+                if (legalDesOp(des, opcode) == TRUE) /*check if operand type is legal for this operation*/
+                {
+                    srcNode = MLgetAddress(token, MM, des, FALSE); /*put into src because in in the end source code is label->opcode->src->des*/
+                }
+                else
+                {
+                    errorILegalAddressing(MM->currentLine, getFT(MM->as)->name, getStr(token), "des");
+                    MM->errorFlag = TRUE;
+                    return;
+                }
             }
-            if ((line->size) - (1 + symbolFlag) == 2)
+            if ((line->size) - (1 + symbolFlag) == 2) /*2 operand needed*/
             {
                 token = getNext(token);
                 src = getAddressingCode(getStr(token));
@@ -626,7 +749,20 @@ void insertCode(LinkedList *line, MemoryManager *MM)
                 token = getNext(token);
                 desNode = token;
                 des = getAddressingCode(getStr(token));
-                if (des == 3 && src == 3)
+                /*check if operand type is legal for this operation*/
+                if (legalSrcOp(src, opcode) == FALSE)
+                {
+                    errorILegalAddressing(MM->currentLine, getFT(MM->as)->name, getStr(srcNode), "src");
+                    MM->errorFlag = TRUE;
+                    return;
+                }
+                if (legalDesOp(des, opcode) == FALSE)
+                {
+                    errorILegalAddressing(MM->currentLine, getFT(MM->as)->name, getStr(desNode), "des");
+                    MM->errorFlag = TRUE;
+                    return;
+                }
+                if (des == 3 && src == 3) /*if both are register combine them to 1 code line*/
                 {
                     srcNode = MLgetAddress(srcNode, MM, src, TRUE);
                     tempML = getML(srcNode);
@@ -639,7 +775,7 @@ void insertCode(LinkedList *line, MemoryManager *MM)
                     desNode = MLgetAddress(desNode, MM, des, FALSE);
                 }
             }
-            if (srcNode != NULL)
+            if (srcNode != NULL) /*add des to src node*/
             {
                 TempNode = srcNode;
                 while (getNext(TempNode) != NULL)
@@ -648,7 +784,7 @@ void insertCode(LinkedList *line, MemoryManager *MM)
                 }
                 TempNode->next = desNode;
             }
-            if (firstMLline != NULL)
+            if (firstMLline != NULL) /*add src and des to first word*/
             {
                 firstMLline->next = srcNode;
                 tempML = getML(firstMLline);
@@ -672,7 +808,6 @@ void insertCode(LinkedList *line, MemoryManager *MM)
         return;
     }
 }
-/*void insertSymbol();*/
 /*@@@ Macro functions @@@*/
 Mcro *newMcro(char *name)
 {
@@ -723,14 +858,14 @@ void advanceData(MemoryManager *MM)
     Node *data = MM->data;
     MemoryLine *ml;
     Symbol *symbol;
-    while (data != NULL)
+    while (data != NULL) /*advance address of data lines*/
     {
         ml = getML(data);
         ml->DA = ml->DA + MM->ic + STARTING_ADDRESS;
         data = getNext(data);
     }
     data = MM->symbol;
-    while (data != NULL)
+    while (data != NULL) /*advance address of symbols of data lines*/
     {
         symbol = getSymbol(data);
         if (symbol->property == DATA || symbol->property == STRING)
@@ -766,13 +901,13 @@ void append(LinkedList *list, Node *newNode)
     }
     else
     {
-        while (getNext(current) != NULL)
+        while (getNext(current) != NULL) /*get to last node*/
         {
             current = getNext(current);
         }
         current->next = newNode;
     }
-    list->size++;
+    list->size++; /*increase size*/
 }
 
 /*@@@ Memory Manager @@@*/
@@ -867,7 +1002,7 @@ int getRegisterValue(char *token)
     if (token[0] == 'r' && isdigit(token[1]) && token[2] == '\0')
     {
         value = token[1];
-        value = value - 48;
+        value = value - 48; /*48 is int value of character 0*/
         if (0 <= value && value <= 7)
         {
             return value;
@@ -891,6 +1026,12 @@ int getImidiateValue(char *token, MemoryManager *MM)
     value = stringToInt(symbolPointer, &success);
     if (success == TRUE)
     {
+        if (legalInteger(value) == FALSE)
+        {
+            errorIlegalInteger(MM->currentLine, getFT(MM->as)->name, symbolPointer);
+            MM->errorFlag = TRUE;
+            return UNDEFINED;
+        }
         return value;
     }
     else
@@ -994,7 +1135,8 @@ FileTracker *newFileTracker(char *name)
 FILE *openFile(FileTracker *fileTracker, char *type)
 {
     FILE *openFile;
-    if (fileTracker->state == TRUE)
+    /*reason for closing and reopening is incase file is open on write but i want to open it on read, type adjusts how to open it for read or write*/
+    if (fileTracker->state == TRUE) /*check if file is already open,close file and reopen, return pointer to it*/
     {
         fclose(fileTracker->file);
     }
@@ -1060,10 +1202,10 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
     Node *returnedNode, *tempNode;
     MemoryLine *tempML;
     Symbol *tempSymbol;
+    /*assign address acording to adressing*/
     if (addressing == 0)
     {
         value = getImidiateValue(getStr(token), MM);
-
         MM->ic = MM->ic + 1;
         tempML = newMemoryLine(MM->ic + STARTING_ADDRESS);
         tempML->SC = token;
@@ -1076,13 +1218,14 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
         tempML = newMemoryLine(MM->ic + STARTING_ADDRESS);
         tempML->SC = token;
         tempML->BMC = UNDEFINED;
-        tempML->type = EXTERN;
+        tempML->type = 0;
         tempSymbol = symbolExists(getStr(token), MM);
         if (tempSymbol != NULL)
         {
             if (tempSymbol->property == EXTERN)
             {
                 tempML->BMC = setARE(0, EXTERN);
+                tempML->type=EXTERN;
             }
         }
         returnedNode = newNode(tempML);
@@ -1091,7 +1234,7 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
     {
         tempNode = newNode(getArraySymbol(getStr(token)));
         tempSymbol = symbolExists(getStr(tempNode), MM);
-        if (tempSymbol == NULL)
+        if (tempSymbol == NULL) /*code line for symbol, if not declared yet ,address undefined*/
         {
             MM->ic = MM->ic + 1;
             tempML = newMemoryLine(MM->ic + STARTING_ADDRESS);
@@ -1108,6 +1251,7 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
             tempML->BMC = setValue(0, value);
             returnedNode = newNode(tempML);
         }
+        /*code line  for adress in array*/
         value = GetArrayData(getStr(token), MM);
         MM->ic = MM->ic + 1;
         tempML = newMemoryLine(MM->ic + STARTING_ADDRESS);
@@ -1121,7 +1265,7 @@ Node *MLgetAddress(Node *token, MemoryManager *MM, int addressing, int isSrc)
         tempML = newMemoryLine(MM->ic + STARTING_ADDRESS);
         tempML->SC = token;
         value = isRegister(getStr(token));
-        if (isSrc == FALSE)
+        if (isSrc == FALSE) /*adjuist value if its a src register or des*/
         {
             tempML->BMC = setValue(0, value);
         }

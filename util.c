@@ -137,3 +137,14 @@ int stringToInt(char *number, int *success)
     *success = TRUE;
     return result * multiplyer;
 }
+int legalInteger(int num)
+{
+    if ((MIN_INT_SIZE * -1) <= num && num <= MAX_INT_SIZE)
+    {
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}

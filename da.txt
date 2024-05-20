@@ -1,0 +1,19 @@
+                if (mcroExists(symbolName, MM) == NULL) /*check that symbol is not a macro name*/
+                {
+                    if (isSavedWord(symbolName) == FALSE)
+                    {
+
+                    }
+                    else
+                    {
+                        errorIsSavedWord(MM->currentLine, getFT(MM->as)->name, symbolName);
+                        MM->errorFlag = TRUE;
+                        return;
+                    }
+                }
+                else
+                {
+                    errorDuplicateMacro(MM->currentLine, getFT(MM->as)->name, symbolName);
+                    MM->errorFlag = TRUE;
+                    return;
+                }

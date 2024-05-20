@@ -53,6 +53,11 @@ void secondPass(MemoryManager *MM)
                     ML->BMC = setARE(ML->BMC, ENTRY);
                     ML->type = ENTRY;
                 }
+                if (symbol->property == EXTERN)
+                {
+                    ML->BMC = setARE(ML->BMC, EXTERN);
+                    ML->type = EXTERN;
+                }
             }
             else
             {

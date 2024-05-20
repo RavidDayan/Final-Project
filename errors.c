@@ -35,6 +35,11 @@ void errorDuplicateSymbol(int line, char *fileName, char *symbol)
     fprintf(stderr, "error:%s,%d:symbol %s has already been declared\n", fileName, line, symbol);
 }
 
+void errorIsSavedWord(int line, char *fileName,char *symbol){
+        fprintf(stderr, "error:%s,%d:symbol %s is a saved word of the system,it cannt be used as label name\n", fileName, line, symbol);
+
+}
+
 void errorIlegalLabel(int line, char *fileName, char *label)
 {
     fprintf(stderr, "error:%s,%d:ilegal label %s ,all labels must start with a letter and continue with numbers or letter\n", fileName, line, label);
@@ -47,7 +52,6 @@ void errorIlegalCharacter(int line, char *fileName, char ch)
 {
     fprintf(stderr, "error:%s,%d:%c character is ilegal,must be letter,digit,comma,[,],:,=,_,.,+,-,#,''\n", fileName, line, ch);
 }
-
 void errorIlegalWordCount(int line, char *fileName, char *type)
 {
     fprintf(stderr, "error:%s,%d:inproper amount of operands,in line of type %s\n", fileName, line, type);
@@ -63,7 +67,10 @@ void errorIlegalWordPlace(int line, char *fileName, char *axis, char *place, cha
 void errorILegalLineSize(int line, char *fileName,int size){
     fprintf(stderr, "error:%s,%d:line has exceeded max characters of %d allowed\n", fileName, line, size);
 }
+void errorILegalAddressing(int line, char *fileName,char* adressing,char* src){
+        fprintf(stderr, "error:%s,%d:%s is not a suitable label for opcade %s in this line\n", fileName, line, adressing,src);
 
+}
 void errorMissingWord(int line, char *fileName, char *word)
 {
     fprintf(stderr, "error:%s,%d:'%s' is missing in this line\n", fileName, line, word);

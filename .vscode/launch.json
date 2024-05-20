@@ -7,7 +7,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/assembler",
-            "args": ["test1","test2,test3"],
+            "args": ["test3"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

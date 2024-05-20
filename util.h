@@ -7,8 +7,8 @@
 
 #define UNDEFINED -99999 /*used to identify "null" integers*/
 /*represent to biggest allowed integer in a 12 bit memory*/
-#define MIN_INT_SIZE −2048
-#define MAX_INT_SIZE 2047;
+#define MIN_INT_SIZE 2048
+#define MAX_INT_SIZE 2047
 /*operation identifiers*/
 #define MDEFINE 0
 #define EXTERN 1
@@ -27,4 +27,5 @@
 char *addFileEnding(char *fileName, int type);
 /*turns a string of +/-[digit][digit]... to int*/
 int stringToInt(char *number, int *success);
+int legalInteger(int num);/*check if int is between -2048 and 2047 that fits in 12 bit size*/
 #endif

@@ -160,6 +160,11 @@ char *getLine(FILE *file)
         line[counter] = '\n';
         counter++;
         line[counter] = '\0';
+        buffer = fgetc(file);
+        while (buffer != '\n' && buffer != EOF)/*skip the line*/
+        {
+            buffer = fgetc(file);
+        }
         errorILegalLineSize(memoryStorage->currentLine, getFT(memoryStorage->as)->name, MAX_LINE_CHARS);
     }
     returned = (char *)malloc(sizeof(char) * (counter + 1));
