@@ -7,23 +7,27 @@
 void buildFiles(MemoryManager *MM)
 {
     FILE *ob = NULL, *ext = NULL, *ent = NULL;
-    int counter = 0, openFlag = FALSE;
+    int counter = 0, openFlag = FALSE; /*counter:counts lines of code in a file,openFlag:signals file has been opend*/
+    /*holders*/
     Symbol *symbol;
     Node *data;
     Node *symbols;
     MemoryLine *ML;
+    /*write .ob*/
     ob = openFile(getFT(MM->ob), "w");
     if (ob == NULL)
     {
         errorCouldNotOpenFile(getFT(MM->ob)->name);
     }
     data = MM->code;
+    /*count code lines*/
     while (data != NULL)
     {
         counter++;
         data = getNext(data);
     }
     fprintf(ob, "%d", counter);
+    /*count data lines*/
     counter = 0;
     data = MM->data;
     while (data != NULL)
@@ -32,10 +36,12 @@ void buildFiles(MemoryManager *MM)
         data = getNext(data);
     }
     fprintf(ob, " %d\n", counter);
+    /*insert hashed qauntinary code lines into .ob*/
     data = MM->code;
     while (data != NULL)
     {
         ML = getML(data);
+        /*compensate for addresses smaller than 1000 to have the first digit as 0,139->0139*/
         if (ML->DA < 1000)
         {
             fputc('0', ob);
@@ -44,6 +50,8 @@ void buildFiles(MemoryManager *MM)
         binToQuantPrint(ML->BMC, ob);
         data = getNext(data);
     }
+    /*insert hashed qauntinary data lines into .ob*/
+
     data = MM->data;
     while (data != NULL)
     {
@@ -56,6 +64,7 @@ void buildFiles(MemoryManager *MM)
         binToQuantPrint(ML->BMC, ob);
         data = getNext(data);
     }
+    /*insert all lines that are extern into .ext*/
 
     data = MM->symbol;
     openFlag = FALSE;
@@ -69,7 +78,7 @@ void buildFiles(MemoryManager *MM)
             {
                 ML = getML(symbols);
                 if (strcmp(getStr(ML->SC), symbol->name) == 0)
-                {
+                { /*opens file .ext only if there is at least 1 ext line*/
                     if (openFlag == FALSE)
                     {
                         openFlag = TRUE;
@@ -88,6 +97,7 @@ void buildFiles(MemoryManager *MM)
 
         data = getNext(data);
     }
+    /*insert all lines that are entry into .ext*/
     data = MM->symbol;
     openFlag = FALSE;
 

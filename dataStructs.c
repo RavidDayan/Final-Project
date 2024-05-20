@@ -9,7 +9,7 @@
 #include "binary.h"
 #include "errors.h"
 #include "MemoryCollector.h"
-
+/*each newtype function saved the memory pointer to the apropriate collector*/
 /*@@@ Node functions @@@*/
 Node *newNode(void *data)
 {
@@ -33,11 +33,6 @@ Node *getNext(Node *node)
 char *getStr(Node *node)
 {
     return (char *)node->data;
-}
-int getInt(Node *node)
-{
-    int *value = (int *)node->data;
-    return *value;
 }
 MemoryLine *getML(Node *node)
 {
@@ -83,14 +78,12 @@ Symbol *newSymbol(char *name)
 }
 Symbol *symbolExists(char *newSymbol, MemoryManager *MM)
 {
-    char *symbolName;
     Symbol *symbol;
     Node *symbolNode = MM->symbol;
-    while (symbolNode != NULL)
+    while (symbolNode != NULL) /*look for matching symbol*/
     {
         symbol = getSymbol(symbolNode);
-        symbolName = getSymbolFromDecleration(symbol->name); /*get only the string before : or []*/
-        if (strcmp(newSymbol, symbolName) == 0)
+        if (strcmp(getSymbolFromDecleration(newSymbol), getSymbolFromDecleration(symbol->name)) == 0)
         {
             {
                 return symbol;
@@ -101,6 +94,196 @@ Symbol *symbolExists(char *newSymbol, MemoryManager *MM)
     return NULL;
 }
 /*@@@ data manipulation*/
+int GetArrayData(char *token, MemoryManager *MM)
+{
+    char *symbol;
+    Symbol *value;
+    int labelFlag = 0;
+    int i = 0, flag = FALSE, counter = 0, success = FALSE;
+    while (token[i] != '\0') /*count how manay characters are inside []*/
+    {
+        if (token[i] == ']')
+        {
+            flag = FALSE;
+        }
+        if (flag == TRUE)
+        {
+            if (isdigit(token[i]) == FALSE)
+            {
+                labelFlag = TRUE;
+            }
+            counter++;
+        }
+        if (token[i] == '[')
+        {
+            flag = TRUE;
+        }
+        i++;
+    }
+    symbol = (char *)malloc(sizeof(char) * (counter + 1));
+    if (symbol == NULL)
+    {
+        errorCouldNotAllocateMemory();
+    }
+    else
+    {
+        addToCollector(newNode(symbol), StringCollector);
+    }
+    counter = 0;
+    i = 0;
+    while (token[i] != '\0') /*insert character inside [] to alocated memory*/
+    {
+        if (token[i] == ']')
+        {
+            flag = FALSE;
+        }
+
+        if (flag == TRUE)
+        {
+            symbol[counter] = token[i];
+            counter++;
+        }
+        if (token[i] == '[')
+        {
+            flag = TRUE;
+        }
+
+        i++;
+    }
+    symbol[counter] = '\0';
+    if (labelFlag == TRUE) /*check */
+    {
+        value = symbolExists(symbol, MM); /*look for symbol value*/
+        if (value == NULL)
+        {
+            errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, symbol);
+            MM->errorFlag = TRUE;
+        }
+        else
+        {
+            return value->value;
+        }
+    }
+    else /*if no value was found try to see if its a number*/
+    {
+        i = stringToInt(symbol, &success);
+        if (success == TRUE)
+        {
+            return i;
+        }
+        else
+        {
+            errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, symbol);
+
+            MM->errorFlag = TRUE;
+        }
+    }
+    return UNDEFINED;
+}
+char *GetArrayDataSymbol(char *token, MemoryManager *MM)
+{
+    char *symbol;
+    int i = 0, flag = FALSE, counter = 0;
+    while (token[i] != '\0') /*count characters between []*/
+    {
+        if (token[i] == ']')
+        {
+            flag = FALSE;
+        }
+        if (flag == TRUE)
+        {
+            counter++;
+        }
+        if (token[i] == '[')
+        {
+            flag = TRUE;
+        }
+        i++;
+    }
+    symbol = (char *)malloc(sizeof(char) * (counter + 1));
+    if (symbol == NULL)
+    {
+        errorCouldNotAllocateMemory();
+    }
+    else
+    {
+        addToCollector(newNode(symbol), StringCollector);
+    }
+    counter = 0;
+    i = 0;
+    while (token[i] != '\0') /*add characters between [] to allocated memory*/
+    {
+        if (token[i] == ']')
+        {
+            flag = FALSE;
+        }
+        if (flag == TRUE)
+        {
+            symbol[counter] = token[i];
+            counter++;
+        }
+        if (token[i] == '[')
+        {
+            flag = TRUE;
+        }
+
+        i++;
+    }
+    symbol[counter] = '\0';
+    return symbol;
+}
+char *getArraySymbol(char *token)
+{
+    char *symbol;
+    int i = 0;
+    while (token[i] != '[') /*count characters before []*/
+    {
+        i++;
+    }
+    symbol = (char *)malloc(sizeof(char) * (i + 1));
+    if (symbol == NULL)
+    {
+        errorCouldNotAllocateMemory();
+    }
+    else
+    {
+        addToCollector(newNode(symbol), StringCollector);
+    }
+    i = 0;
+    while (token[i] != '[') /*add characters before [] to allocated memory*/
+    {
+        symbol[i] = token[i];
+        i++;
+    }
+    symbol[i] = '\0';
+    return symbol;
+}
+char *getSymbolFromDecleration(char *decleration)
+{
+    int i = 0;
+    char *symbol = NULL;
+    while (isalnum(decleration[i]) != 0) /*count characters that are alnum*/
+    {
+        i++;
+    }
+    symbol = (char *)malloc(sizeof(char) * (i + 1));
+    if (symbol == NULL)
+    {
+        errorCouldNotAllocateMemory();
+    }
+    else
+    {
+        addToCollector(newNode(symbol), StringCollector);
+    }
+    i = 0;
+    while (isalnum(decleration[i]) != 0) /*add alnum characters to allocated memory*/
+    {
+        symbol[i] = decleration[i];
+        i++;
+    }
+    symbol[i] = '\0';
+    return symbol;
+}
 void insertMdefine(LinkedList *line, MemoryManager *MM)
 {
     /*define structure [.define,symbol,=,int]*/
@@ -108,7 +291,7 @@ void insertMdefine(LinkedList *line, MemoryManager *MM)
     Symbol *newMdefine;
     char *symbolName;
     int succesfullConverted = FALSE, number = UNDEFINED;
-    if (line->size != MDEFINE_SIZE)
+    if (line->size != 4)
     {
         errorIlegalWordCount(MM->currentLine, getFT(MM->as)->name, getStr(token));
         MM->errorFlag = TRUE;
@@ -224,191 +407,6 @@ void insertEntry(LinkedList *line, MemoryManager *MM)
             return;
         }
     }
-}
-int GetArrayData(char *token, MemoryManager *MM)
-{
-    char *symbol;
-    Symbol *value;
-    int labelFlag = 0;
-    int i = 0, flag = FALSE, counter = 0, success = FALSE;
-    while (token[i] != '\0')
-    {
-        if (token[i] == ']')
-        {
-            flag = FALSE;
-        }
-        if (flag == TRUE)
-        {
-            if (isdigit(token[i]) == FALSE)
-            {
-                labelFlag = TRUE;
-            }
-            counter++;
-        }
-        if (token[i] == '[')
-        {
-            flag = TRUE;
-        }
-        i++;
-    }
-    symbol = (char *)malloc(sizeof(char) * (counter + 1));
-    if (symbol == NULL)
-    {
-        errorCouldNotAllocateMemory();
-    }
-    else
-    {
-        addToCollector(newNode(symbol), StringCollector);
-    }
-    counter = 0;
-    i = 0;
-    while (token[i] != '\0')
-    {
-        if (token[i] == ']')
-        {
-            flag = FALSE;
-        }
-
-        if (flag == TRUE)
-        {
-            symbol[counter] = token[i];
-            counter++;
-        }
-        if (token[i] == '[')
-        {
-            flag = TRUE;
-        }
-
-        i++;
-    }
-    symbol[counter] = '\0';
-    if (labelFlag == TRUE)
-    {
-        value = symbolExists(symbol, MM);
-        if (value == NULL)
-        {
-            errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, symbol);
-            MM->errorFlag = TRUE;
-        }
-        else
-        {
-            return value->value;
-        }
-    }
-    else
-    {
-        i = stringToInt(symbol, &success);
-        if (success == TRUE)
-        {
-            return i;
-        }
-        else
-        {
-            errorMissingDecleration(MM->currentLine, getFT(MM->as)->name, symbol);
-
-            MM->errorFlag = TRUE;
-        }
-    }
-    return UNDEFINED;
-}
-char *GetArrayDataSymbol(char *token, MemoryManager *MM)
-{
-    char *symbol;
-    int i = 0, flag = FALSE, counter = 0;
-    while (token[i] != '\0')
-    {
-        if (token[i] == ']')
-        {
-            flag = FALSE;
-        }
-        if (flag == TRUE)
-        {
-            counter++;
-        }
-        if (token[i] == '[')
-        {
-            flag = TRUE;
-        }
-        i++;
-    }
-    symbol = (char *)malloc(sizeof(char) * (counter + 1));
-    if (symbol == NULL)
-    {
-        errorCouldNotAllocateMemory();
-    }
-    else
-    {
-        addToCollector(newNode(symbol), StringCollector);
-    }
-    counter = 0;
-    i = 0;
-    while (token[i] != '\0')
-    {
-        if (token[i] == ']')
-        {
-            flag = FALSE;
-        }
-
-        if (flag == TRUE)
-        {
-            symbol[counter] = token[i];
-            counter++;
-        }
-        if (token[i] == '[')
-        {
-            flag = TRUE;
-        }
-
-        i++;
-    }
-    symbol[counter] = '\0';
-    return symbol;
-}
-char *getArraySymbol(char *token)
-{
-    char *symbol;
-    int i = 0;
-    while (token[i] != '[')
-    {
-        i++;
-    }
-    symbol = (char *)malloc(sizeof(char) * (i + 1));
-    if (symbol == NULL)
-    {
-        errorCouldNotAllocateMemory();
-    }
-    else
-    {
-        addToCollector(newNode(symbol), StringCollector);
-    }
-    i = 0;
-    while (token[i] != '[')
-    {
-        symbol[i] = token[i];
-        i++;
-    }
-    symbol[i] = '\0';
-    return symbol;
-}
-char *getSymbolFromDecleration(char *decleration)
-{
-    int i = 0;
-    char *symbol = (char *)malloc(sizeof(char));
-    if (symbol == NULL)
-    {
-        errorCouldNotAllocateMemory();
-    }
-    else
-    {
-        addToCollector(newNode(symbol), StringCollector);
-    }
-    while (isalnum(decleration[i]) != 0)
-    {
-        symbol[i] = decleration[i];
-        i++;
-    }
-    symbol[i] = '\0';
-    return symbol;
 }
 void insertData(LinkedList *line, MemoryManager *MM)
 {
@@ -1037,22 +1035,6 @@ void intializeFiles(MemoryManager *mm, char *name)
     ending = addFileEnding(name, EXTERN);
     File = newFileTracker(ending);
     mm->ext = newNode(File);
-}
-int isSymbolDefined(char *token, MemoryManager *MM)
-{
-    Symbol *symbol = symbolExists(token, MM);
-    if (symbol == NULL)
-    {
-        return FALSE;
-    }
-    else
-    {
-        if (symbol->property != MDEFINE)
-        {
-            return FALSE;
-        }
-    }
-    return TRUE;
 }
 /*@@@ Memory Lines @@@*/
 MemoryLine *newMemoryLine(int address)

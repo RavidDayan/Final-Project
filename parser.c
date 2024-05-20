@@ -12,20 +12,21 @@ char *removeWhiteSpace(FILE *input)
 {
     FILE *newFile;
     char buffer;
-    char *organizedFile = "removeWhiteSpace.as";
-    char lastInserted = ' ';
-    int StringEnd = 0, counter = 0;
-    int sqBracketsFlag = 0;
+    char *organizedFile = "removeWhiteSpace.as"; /*temporary file to hold proccessed whitespace add/remove .as file*/
+    char lastInserted = ' ';                     /*holds the last character that was inserted for comperations to current*/
+    int StringEnd = 0;                           /*indicates place for end of string*/
+    int counter = 0;
+    int sqBracketsFlag = 0; /*indicates chars are currently between brackets*/
     buffer = fgetc(input);
     newFile = fopen(organizedFile, "w");
     while (buffer != EOF)
     {
         if (isSpecialChar(buffer) == TRUE)
         {
-            if (buffer == '"') /*handle string*/
+            if (buffer == '"') /*insed string all characters are allowed, string is considerd all characters between the most left " and the most right " in a line, each line can hold only 1 string*/
             {
                 counter = 0;
-                while (buffer != EOF && buffer != '\n') /*go back to first ' " '*/
+                while (buffer != EOF && buffer != '\n') /*find the place of the last " */
                 {
                     if (buffer == '"')
                     {
@@ -34,8 +35,7 @@ char *removeWhiteSpace(FILE *input)
                     counter++;
                     buffer = fgetc(input);
                 }
-                fseek(input, -1 * (counter + 1), SEEK_CUR);
-                printf("%c\n", buffer);
+                fseek(input, -1 * (counter + 1), SEEK_CUR); /*go back to first " */
                 while (StringEnd >= 0)
                 {
                     buffer = fgetc(input);
@@ -46,25 +46,25 @@ char *removeWhiteSpace(FILE *input)
                 lastInserted = '"';
                 continue;
             }
-            if (buffer == ':') /*start of brackets*/
+            if (buffer == ':') /*space after : for easier tokening, :[character] is allowed*/
             {
                 fputc(buffer, newFile);
                 fputc(' ', newFile);
                 lastInserted = ' ';
             }
-            if (buffer == '[') /*start of brackets*/
+            if (buffer == '[') /*signal start of brackets*/
             {
                 fputc(buffer, newFile);
                 lastInserted = buffer;
                 sqBracketsFlag = 1;
             }
-            if (buffer == ']') /*end of brackets*/
+            if (buffer == ']') /*signal end of brackets*/
             {
                 fputc(buffer, newFile);
                 lastInserted = buffer;
                 sqBracketsFlag = 0;
             }
-            if (buffer == '=')
+            if (buffer == '=') /*space before and after = for eiasier tokening, char=char is allowed*/
             {
                 if (isspace(lastInserted) == FALSE)
                 {
@@ -83,7 +83,7 @@ char *removeWhiteSpace(FILE *input)
                     }
                 }
             }
-            if (buffer == ',')
+            if (buffer == ',') /*remove excess whitespaces before commas*/
             {
                 if (isspace(lastInserted) != FALSE)
                 {
@@ -111,7 +111,7 @@ char *removeWhiteSpace(FILE *input)
             }
             else
             {
-                if (buffer == '\n' && isspace(lastInserted) != FALSE && lastInserted != '\n')
+                if (buffer == '\n' && isspace(lastInserted) != FALSE && lastInserted != '\n') /*remove whitespaces from end of line*/
                 {
                     fseek(newFile, -1, SEEK_CUR);
                 }
@@ -132,13 +132,13 @@ char *getLine(FILE *file)
     char line[MAX_LINE_CHARS]; /*holds the line up to MAX_LINE_CHARS characters*/
     char *returned;
     buffer = fgetc(file);
-    while (buffer != EOF && buffer != '\n' && counter < (MAX_LINE_CHARS - 2))
+    while (buffer != EOF && buffer != '\n' && counter < (MAX_LINE_CHARS - 2)) /*fills the line  up to end of line, eof or 80 characters has reached*/
     {
         line[counter] = buffer;
         counter++;
         buffer = fgetc(file);
     }
-    if (buffer == EOF)
+    if (buffer == EOF) /*check if we got to end of file*/
     {
         if (counter == 0)
         {
@@ -146,18 +146,21 @@ char *getLine(FILE *file)
         }
         else
         {
-            buffer = '\n';
+            buffer = '\n'; /*if a line has been proccessed put \n as l;ast character, file pointer is no on eof,next getline it will return null*/
         }
     }
-    if (buffer == '\n')
+    if (buffer == '\n') /*add \0 ending*/
     {
         line[counter] = buffer;
         counter++;
         line[counter] = '\0';
     }
-    if (strlen(line) > MAX_LINE_CHARS)
+    if (strlen(line) > MAX_LINE_CHARS) /*print erroir if line exceeded limit*/
     {
-        /*trigger more than MAX_LINE_CHARS characters*/
+        line[counter] = '\n';
+        counter++;
+        line[counter] = '\0';
+        errorILegalLineSize(memoryStorage->currentLine, getFT(memoryStorage->as)->name, MAX_LINE_CHARS);
     }
     returned = (char *)malloc(sizeof(char) * (counter + 1));
     if (returned == NULL)
@@ -196,7 +199,7 @@ LinkedList *getTokens(char *line)
                 i++;
             }
             i = lastStringIndex;
-            counter = lastStringIndex - firstStringIndex;
+            counter = lastStringIndex - firstStringIndex; /*find the amount of characters that are in between both ""*/
         }
 
         while (isTokenSpacer(line[i]) == FALSE)
@@ -266,7 +269,7 @@ int isLegalSyntax(char *line, MemoryManager *MM)
     if (line[0] != '.' && isalpha(line[0]) == FALSE && line[0] != '\n') /* either starts with symbol or .extern/define/data/string/entry*/
     {
         c = line[0];
-        errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " start", "of line", c, "',',letter, empty line");
+        errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, "of line", "start", c, "'.',';',letter, empty line");
         return FALSE;
     }
     i = 0;
@@ -291,7 +294,7 @@ int isLegalSyntax(char *line, MemoryManager *MM)
             }
             if (closedString == FALSE)
             {
-                errorMissingWord(MM->currentLine, getFT(MM->as)->name, "closing ''");
+                errorMissingWord(MM->currentLine, getFT(MM->as)->name, "closing '");
                 return FALSE;
             }
             else
@@ -306,7 +309,7 @@ int isLegalSyntax(char *line, MemoryManager *MM)
         {
             if (isalnum(line[i - 1]) == FALSE)
             {
-                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " before", "[]", line[i - 1], "letter or integer without spaces");
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, "[]", "before", line[i - 1], "letter or integer without spaces");
                 return FALSE;
             }
             i++;
@@ -314,14 +317,14 @@ int isLegalSyntax(char *line, MemoryManager *MM)
             {
                 if (isalnum(line[i]) == FALSE)
                 {
-                    errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " inside", "[]", line[i], "letter or integer without spaces");
+                    errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, "[]", "inside", line[i], "letter or integer without spaces");
                     return FALSE;
                 }
                 i++;
             }
             if (line[i] != ']')
             {
-                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " after", "[ + symbol", line[i], "]");
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, "[ + symbol", "after", line[i], "]");
 
                 return FALSE;
             }
@@ -331,7 +334,7 @@ int isLegalSyntax(char *line, MemoryManager *MM)
         }
         if (line[i] == ']')
         { /*] should be handled in [,otherwise its alone*/
-            errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " before", "]", line[i], "[+ symbol");
+            errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, "]", "before", line[i], "[+ symbol");
             return FALSE;
         }
         if (line[i] == ':') /*check alnum before : and no 2 : in line*/
@@ -339,7 +342,7 @@ int isLegalSyntax(char *line, MemoryManager *MM)
             decalreFLag++;
             if (isalnum(line[i - 1]) == FALSE)
             {
-                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " before", ":", line[i - 1], "letter or integer");
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, ":", "before", line[i - 1], "letter or integer");
                 return FALSE;
             }
             if (decalreFLag == 2)
@@ -372,7 +375,7 @@ int isLegalSyntax(char *line, MemoryManager *MM)
         {
             if (isalnum(line[i + 1]) == FALSE && line[i + 1] != '-' && line[i + 1] != '+')
             {
-                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " after", "#", line[i + 1], "+/-[digit][digit]...");
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, "#", "after", line[i + 1], "+/-[digit][digit]...");
                 return FALSE;
             }
             allowedCommaFlag = TRUE;
@@ -382,7 +385,7 @@ int isLegalSyntax(char *line, MemoryManager *MM)
             i++;
             if (isalpha(line[i]) == FALSE)
             {
-                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " after", ". ", line[i], "data/string/define/extern/entry");
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, "after", ".", line[i], "data/string/define/extern/entry");
                 return FALSE;
             }
             i++;
@@ -392,7 +395,7 @@ int isLegalSyntax(char *line, MemoryManager *MM)
             }
             if (isspace(line[i]) == FALSE && line[i] != '\0')
             {
-                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, " after", ".operand ", line[i], "letter or number");
+                errorIlegalCharPlace(MM->currentLine, getFT(MM->as)->name, ".operand", "after", line[i], "letter or number");
                 return FALSE;
             }
             allowedCommaFlag = FALSE;
@@ -433,6 +436,45 @@ int isIlegalCharacter(char ch)
     {
         return FALSE;
     }
+}
+int isSavedWord(char *token)
+{
+    int flag = 0;
+    flag = isOpCode(token);
+    if (flag != UNDEFINED)
+    {
+        return TRUE;
+    }
+    flag = isRegister(token);
+    if (flag != UNDEFINED)
+    {
+        return TRUE;
+    }
+    if (isEntry(token))
+    {
+        return TRUE;
+    }
+    if (isExtern(token))
+    {
+        return TRUE;
+    }
+    if (isData(token))
+    {
+        return TRUE;
+    }
+    if (isString(token))
+    {
+        return TRUE;
+    }
+    if (isMacro(token))
+    {
+        return TRUE;
+    }
+    if (isMdefine(token))
+    {
+        return TRUE;
+    }
+    return FALSE;
 }
 int isMdefine(char *token)
 {
@@ -560,7 +602,7 @@ int isRegister(char *token)
     int charValue;
     if (token[0] == 'r' && isdigit(token[1]) != FALSE && token[2] == '\0')
     {
-        charValue = token[1] - '0';
+        charValue = token[1] - '0'; /*digit-'0' results in the the digit itself*/
         if (0 <= charValue && charValue <= 7)
         {
             return charValue;

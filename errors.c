@@ -54,12 +54,14 @@ void errorIlegalWordCount(int line, char *fileName, char *type)
 }
 void errorIlegalCharPlace(int line, char *fileName, char *axis, char *place, char ilegal, char *mustBe)
 {
-    fprintf(stderr, "error:%s,%d:%s %s %c is ilegal,must be %s\n", fileName, line, place, axis, ilegal, mustBe);
+    fprintf(stderr, "error:%s,%d:%s %s '%c' is ilegal,must be %s\n", fileName, line, place, axis, ilegal, mustBe);
 }
 void errorIlegalWordPlace(int line, char *fileName, char *axis, char *place, char *ilegal, char *mustBe)
-
 {
     fprintf(stderr, "error:%s,%d:%s %s %s is ilegal,must be %s\n", fileName, line, place, axis, ilegal, mustBe);
+}
+void errorILegalLineSize(int line, char *fileName,int size){
+    fprintf(stderr, "error:%s,%d:line has exceeded max characters of %d allowed\n", fileName, line, size);
 }
 
 void errorMissingWord(int line, char *fileName, char *word)

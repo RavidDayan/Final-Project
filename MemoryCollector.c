@@ -10,13 +10,14 @@ Node *MLCollector = NULL;
 Node *FileTrackerCollector = NULL;
 Node *StringCollector = NULL;
 Node *LLCollector = NULL;
-
+/*after freeing,the freed element is set to null*/
+/*each freeing function of node types checks that the file has no already been freed(is null)*/
 void releaseAllFileMemory()
 {
     freeMemoryStorage();
     freeCollectors();
     memoryStorage = NULL;
-    remove("removeWhiteSpace.as");
+    remove("removeWhiteSpace.as"); /*incase abrupt exit while pre proccessing emove the helper file*/
 }
 void freeMemoryStorage()
 {
@@ -34,43 +35,6 @@ void freeCollectors()
     freeCollector(FileTrackerCollector, freeFT);
     freeCollector(StringCollector, freeString);
     freeCollector(LLCollector, freeSymbol);
-}
-void freeFiles()
-{
-    LinkedList *LL = newLinkedList();
-    LL->head = memoryStorage->am;
-    freeList(LL, freeFT);
-    LL = newLinkedList();
-    LL->head = memoryStorage->as;
-    freeList(LL, freeFT);
-    LL = newLinkedList();
-    LL->head = memoryStorage->ob;
-    freeList(LL, freeFT);
-    LL = newLinkedList();
-    LL->head = memoryStorage->ext;
-    freeList(LL, freeFT);
-    LL = newLinkedList();
-    LL->head = memoryStorage->ent;
-    freeList(LL, freeFT);
-}
-void freeList(LinkedList *list, void (*freeData)(Node *))
-{
-    if (list != NULL)
-    {
-        Node *next;
-        Node *current = list->head;
-        while (current != NULL)
-        {
-            next = getNext(current);
-            if (current->data != NULL)
-            {
-                freeData(current);
-            }
-            free(current);
-            current = next;
-        }
-        free(list);
-    }
 }
 void freeCollector(Node *collector, void (*freeData)(Node *))
 {

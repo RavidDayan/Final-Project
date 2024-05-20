@@ -4,6 +4,7 @@
 #include "dataStructs.h"
 #include "parser.h"
 
+/*in src,and des addressing if it supports its 1 else 0*/
 opCode codes[16] = {
     {"mov", 2, {1, 1, 1, 1}, {0, 1, 1, 1}},
     {"cmp", 2, {1, 1, 1, 1}, {1, 1, 1, 1}},
@@ -20,8 +21,7 @@ opCode codes[16] = {
     {"prn", 1, {0, 0, 0, 0}, {1, 1, 1, 1}},
     {"jsr", 1, {0, 0, 0, 0}, {0, 1, 0, 1}},
     {"rts", 0, {0, 0, 0, 0}, {0, 0, 0, 0}},
-    {"hlt", 0, {0, 0, 0, 0}, {0, 0, 0, 0}}
-    };
+    {"hlt", 0, {0, 0, 0, 0}, {0, 0, 0, 0}}};
 
 int isOpCode(char *opCode)
 {
@@ -64,7 +64,7 @@ int getAddressingCode(char *token)
     {
         return 2;
     }
-    if (isRegister(token)!=UNDEFINED)
+    if (isRegister(token) != UNDEFINED)
     {
         return 3;
     }

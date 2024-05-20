@@ -96,11 +96,11 @@ int stringToInt(char *number, int *success)
 {
     int counter = 0;
     int i = 0;
-    int multiplyer = 1;
+    int multiplyer = 1; /*multiplier for + or - integer*/
     int decimal = 1;
     int numbeValue = 0;
     int result = 0;
-    if (number == NULL || *number == '\0' || (number[0] != '+' && number[0] != '-' && isdigit(number[0]) == FALSE))
+    if (number == NULL || *number == '\0' || (number[0] != '+' && number[0] != '-' && isdigit(number[0]) == FALSE)) /*number must start with + - or digit*/
     {
         *success = FALSE;
         return 0;
@@ -115,7 +115,7 @@ int stringToInt(char *number, int *success)
         multiplyer = 1;
         i++;
     }
-    while (number[i] != '\0')
+    while (number[i] != '\0') /*check that all characters are digits*/
     {
         if (isdigit(number[i]) == FALSE)
         {
@@ -126,7 +126,7 @@ int stringToInt(char *number, int *success)
         i++;
     }
     i--;
-    while (counter > 0)
+    while (counter > 0) /*go from the end to the start and mutiply digit by the appropriate decimal */
     {
         numbeValue = number[i] - '0';
         result = (numbeValue * decimal) + result;
